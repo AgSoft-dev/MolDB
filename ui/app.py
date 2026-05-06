@@ -40,7 +40,9 @@ async def create_molecule(payload: MoleculeCreate):
         raise HTTPException(422, str(e))
 
     mol = Molecule(
-        **payload.dict(),
+        name=payload.name,
+        cas_number=payload.cas_number,
+        notes=payload.notes,
         smiles=canonical,
         inchikey=inchikey,
         svg_cache=svg,

@@ -10,8 +10,16 @@ let editorSearch = null, editorAdd = null;
 
 window.addEventListener('load', () => {
   if (typeof Kekule !== 'undefined') {
-    editorSearch = new Kekule.Editor.Composer(document.getElementById('kekule-search'));
-    editorAdd    = new Kekule.Editor.Composer(document.getElementById('kekule-add'));
+    Kekule.init(() => {
+      editorSearch = Kekule.Widget.createFromHash(document.getElementById('kekule-search'), {
+        'widgetType': 'Kekule.Editor.Composer',
+        'resizable': false,
+      });
+      editorAdd = Kekule.Widget.createFromHash(document.getElementById('kekule-add'), {
+        'widgetType': 'Kekule.Editor.Composer',
+        'resizable': false,
+      });
+    });
   }
   const slider = document.getElementById('threshold');
   slider.addEventListener('input', e => {
@@ -21,9 +29,14 @@ window.addEventListener('load', () => {
 
 function getEditorSmiles(editor) {
   if (!editor) return null;
-  const mol = editor.getChemObj();
-  if (!mol) return null;
-  try { return Kekule.IO.saveFormatData(mol, 'smi'); } catch { return null; }
+  try {
+    const chemObj = editor.getChemObj();
+    if (!chemObj) return null;
+    return Kekule.IO.saveFormatData(chemObj, 'smi');
+  } catch (e) {
+    console.error('SMILES export failed:', e);
+    return null;
+  }
 }
 
 function importSmilesFromDrawing() {

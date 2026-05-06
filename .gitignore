@@ -1,0 +1,85 @@
+# Byte-compiled / optimized / DLL files
+
+pycache/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+
+venv/
+env/
+moldb/
+.venv/
+ENV/
+
+# Distribution / packaging
+
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+share/python-wheels/
+*.whl
+
+# Installer logs
+
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checkers
+
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Jupyter Notebook
+
+.ipynb_checkpoints/
+
+# Environments / config
+
+.env
+.env.*
+*.local
+
+# IDE / editors
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+
+.DS_Store
+
+# Logs
+
+*.log
+
+# Database (optional – remove if you want to commit local DB)
+
+*.sqlite3
+*.sqlite
+
+# Temporary files
+
+tmp/
+temp/
