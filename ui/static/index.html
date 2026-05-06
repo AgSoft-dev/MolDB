@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MolDB</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!--
+    Kekule.js: swap the CDN URL below for a local bundle in your offline/PyInstaller build.
+    Download from: https://github.com/partridgejiang/Kekule.js/releases
+    Then place kekule.js in ui/static/ and update the src to "/static/kekule.js"
+  -->
+  <script src="https://partridgejiang.github.io/Kekule.js/releases/current/kekule.js"></script>
+</head>
+<body>
+  <header>
+    <h1>⬡ MolDB</h1>
+    <nav>
+      <button onclick="showPanel('search')">Search</button>
+      <button onclick="showPanel('add')">Add Molecule</button>
+      <button onclick="showPanel('list')">All Molecules</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- SEARCH PANEL -->
+    <section id="panel-search" class="panel active">
+      <h2>Search</h2>
+      <div class="search-bar">
+        <input id="search-input" type="text" placeholder="Name, CAS number, or SMILES…" />
+        <select id="search-type">
+          <option value="q">Name (fuzzy)</option>
+          <option value="cas">CAS Number</option>
+          <option value="smiles">SMILES (exact)</option>
+        </select>
+        <button onclick="doSearch()">Search</button>
+      </div>
+
+      <div id="structure-search-box">
+        <h3>Structure / Similarity Search</h3>
+        <div id="kekule-search" class="kekule-widget"></div>
+        <div class="search-options">
+          <label>
+            Threshold:
+            <input type="range" id="threshold" min="0.1" max="1" step="0.05" value="0.7" />
+            <span id="threshold-val">0.7</span>
+          </label>
+          <label><input type="radio" name="smode" value="similarity" checked /> Similarity</label>
+          <label><input type="radio" name="smode" value="substructure" /> Substructure</label>
+          <button onclick="doStructureSearch()">Search by Structure</button>
+        </div>
+      </div>
+
+      <div id="search-results"></div>
+    </section>
+
+    <!-- ADD PANEL -->
+    <section id="panel-add" class="panel">
+      <h2>Add Molecule</h2>
+      <div id="kekule-add" class="kekule-widget"></div>
+      <button class="secondary" onclick="importSmilesFromDrawing()">↓ Import SMILES from Drawing</button>
+
+      <div id="add-form">
+        <label>Name <span class="req">*</span><input id="add-name" /></label>
+        <label>SMILES <span class="req">*</span><input id="add-smiles" /></label>
+        <label>CAS Number <input id="add-cas" placeholder="e.g. 50-78-2" /></label>
+        <label>Notes <textarea id="add-notes" rows="3"></textarea></label>
+        <button onclick="submitAdd()">Save Molecule</button>
+      </div>
+      <div id="add-result"></div>
+    </section>
+
+    <!-- LIST PANEL -->
+    <section id="panel-list" class="panel">
+      <h2>All Molecules</h2>
+      <button class="secondary" onclick="loadList()">↺ Refresh</button>
+      <div id="list-results"></div>
+    </section>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
