@@ -47,6 +47,7 @@ async def create_molecule(payload: MoleculeCreate):
     mol = Molecule(
         name=payload.name,
         cas_number=payload.cas_number,
+        project=payload.project,
         notes=payload.notes,
         smiles=canonical,
         inchikey=inchikey,

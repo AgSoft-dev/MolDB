@@ -69,6 +69,7 @@ function molCard(m, score = null) {
       <div class="mol-info">
         <strong class="mol-name">${escHtml(m.name)}</strong>
         ${m.cas_number ? `<span class="badge">CAS ${escHtml(m.cas_number)}</span>` : ''}
+        ${m.project ? `<span class="badge">Project ${escHtml(m.project)}</span>` : ''}
         <span>Formula: <code>${m.molecular_formula ?? '—'}</code></span>
         <span>MW: ${m.molecular_weight ?? '—'} g/mol</span>
         <small class="smiles">${escHtml(m.smiles)}</small>
@@ -124,6 +125,7 @@ async function submitAdd() {
     name:       document.getElementById('add-name').value.trim(),
     smiles:     document.getElementById('add-smiles').value.trim(),
     cas_number: document.getElementById('add-cas').value.trim() || null,
+    project:    document.getElementById('add-project').value.trim() || null,
     notes:      document.getElementById('add-notes').value.trim() || null,
   };
   if (!payload.name || !payload.smiles) {
@@ -134,7 +136,7 @@ async function submitAdd() {
     const mol = await api('/molecules', { method: 'POST', body: JSON.stringify(payload) });
     document.getElementById('add-result').innerHTML =
       `<p class="ok">✓ Saved: <strong>${escHtml(mol.name)}</strong> (id=${mol.id})</p>`;
-    ['add-name','add-smiles','add-cas','add-notes'].forEach(id => {
+    ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
       document.getElementById(id).value = '';
     });
   } catch (e) {

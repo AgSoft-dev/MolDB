@@ -9,6 +9,15 @@ class MoleculeDB:
         url = f"sqlite:///{db_path}"
         self.engine = create_engine(url, connect_args={"check_same_thread": False})
         SQLModel.metadata.create_all(self.engine)
+        self._ensure_project_column_exists()
+
+    def _ensure_project_column_exists(self) -> None:
+        with self.engine.connect() as conn:
+            result = conn.execute("PRAGMA table_info('molecule')")
+            columns = [row[1] for row in result.fetchall()]
+            if 'project' not in columns:
+                conn.execute("ALTER TABLE molecule ADD COLUMN project TEXT")
+                conn.commit()
 
     def add(self, mol: Molecule) -> Molecule:
         with Session(self.engine) as s:

@@ -42,6 +42,9 @@
                 class="ketcher-frame"
                 title="Ketcher structure editor (search)"></iframe>
         <div class="search-options">
+          <p style="margin:0 0 0.75rem; font-size:0.95rem; color:#555; line-height:1.4;">
+            <strong>Similarity</strong> is a fuzzy, global fingerprint search: molecules are ranked by structural similarity to the query and filtered by the threshold. <strong>Substructure</strong> means an exact fragment match: only molecules that contain the drawn query as a part of their structure are returned.
+          </p>
           <label>
             Threshold:
             <input type="range" id="threshold" min="0.1" max="1" step="0.05" value="0.7" />
@@ -71,6 +74,7 @@
         <label>Name <span class="req">*</span><input id="add-name" /></label>
         <label>SMILES <span class="req">*</span><input id="add-smiles" /></label>
         <label>CAS Number <input id="add-cas" placeholder="e.g. 50-78-2" /></label>
+        <label>Project <input id="add-project" placeholder="e.g. API screening" /></label>
         <label>Notes <textarea id="add-notes" rows="3"></textarea></label>
         <button onclick="submitAdd()">Save Molecule</button>
       </div>
