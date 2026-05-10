@@ -10,7 +10,7 @@ from moldb.exceptions import MoleculeNotFound, DuplicateMolecule
 def db():
     with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
         path = f.name
-    d = MoleculeDB(path)
+    d = MoleculeDB(path, create=True, migrate=True)
     yield d
     os.unlink(path)
 

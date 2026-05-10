@@ -35,9 +35,9 @@ class SearchEngine:
             canonical = chem.normalize_smiles(smiles)
             inchikey = chem.smiles_to_inchikey(canonical)
         except Exception:
-            return None
+           return None
         all_mols = self.db.list_all(limit=10_000)
-        return next((m for m in all_mols if m.inchikey == inchikey), None)
+        return next((m for m in all_mols if m.smiles.lower() == canonical.lower()), None)
 
     def by_structure(
         self, query_smiles: str, threshold: float = 0.7, limit: int = 20

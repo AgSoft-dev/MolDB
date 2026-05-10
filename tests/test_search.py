@@ -10,7 +10,7 @@ from moldb.models import Molecule
 def populated_db():
     with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
         path = f.name
-    db = MoleculeDB(path)
+    db = MoleculeDB(path, create=True, migrate=True)
     db.add(Molecule(name="Aspirin", smiles="CC(=O)Oc1ccccc1C(=O)O", cas_number="50-78-2"))
     db.add(Molecule(name="Caffeine", smiles="Cn1cnc2c1c(=O)n(c(=O)n2C)C", cas_number="58-08-2"))
     db.add(Molecule(name="Benzene", smiles="c1ccccc1", cas_number="71-43-2"))
@@ -45,6 +45,7 @@ def test_by_cas_not_found(populated_db):
 def test_by_smiles_exact(populated_db):
     se = SearchEngine(populated_db)
     mol = se.by_smiles_exact("c1ccccc1")
+    print(mol)
     assert mol is not None
     assert mol.name == "Benzene"
 
