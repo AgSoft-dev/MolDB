@@ -46,7 +46,64 @@ window.addEventListener('load', () => {
   slider.addEventListener('input', e => {
     document.getElementById('threshold-val').textContent = e.target.value;
   });
+  loadDbPath();
+
+  // Handle file selection for DB path
+  const fileInput = document.getElementById('db-file-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('db-path-input').value = file.name;
+        setDbPath();  // Automatically set the DB path
+      }
+    });
+  }
+
+  // Handle manual path input
+  const pathInput = document.getElementById('db-path-input');
+  if (pathInput) {
+    pathInput.addEventListener('change', setDbPath);
+  }
 });
+
+function getStoredDbPath() {
+  return window.localStorage.getItem('moldb_db_path') || '';
+}
+
+function setStoredDbPath(path) {
+  window.localStorage.setItem('moldb_db_path', path);
+}
+
+async function loadDbPath() {
+  const savedPath = getStoredDbPath();
+  const input = document.getElementById('db-path-input');
+  if (!input) return;
+  input.value = savedPath;
+  if (savedPath) {
+    document.getElementById('db-path-result').textContent = `Saved path: ${savedPath}`;
+  }
+}
+
+async function setDbPath() {
+  const input = document.getElementById('db-path-input');
+  const result = document.getElementById('db-path-result');
+  const path = input.value.trim();
+  if (!path) {
+    result.textContent = 'Please enter a database path.';
+    return;
+  }
+  try {
+    await api('/db/path', {
+      method: 'POST',
+      body: JSON.stringify({ path }),
+    });
+    setStoredDbPath(path);
+    result.textContent = `Using DB: ${path}`;
+  } catch (e) {
+    result.textContent = `Failed to set DB: ${escHtml(e.message)}`;
+  }
+}
 
 /* ── API helpers ──────────────────────────────────────────────────────────── */
 async function api(path, opts = {}) {

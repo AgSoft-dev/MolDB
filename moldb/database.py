@@ -6,6 +6,7 @@ from .exceptions import MoleculeNotFound, DuplicateMolecule
 
 class MoleculeDB:
     def __init__(self, db_path: str = "moldb.sqlite"):
+        self.db_path = db_path
         url = f"sqlite:///{db_path}"
         self.engine = create_engine(url, connect_args={"check_same_thread": False})
         SQLModel.metadata.create_all(self.engine)

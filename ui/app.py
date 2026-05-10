@@ -33,6 +33,29 @@ async def index():
 
 # ── Molecules CRUD ─────────────────────────────────────────────────────────────
 
+class DBPathPayload(BaseModel):
+    path: str
+
+
+class DBPathResponse(BaseModel):
+    path: str
+
+
+@app.get("/api/db/path", response_model=DBPathResponse)
+async def get_db_path():
+    return {"path": db.db_path}
+
+
+@app.post("/api/db/path", response_model=DBPathResponse)
+async def set_db_path(payload: DBPathPayload):
+    if not payload.path.strip():
+        raise HTTPException(422, "Database path must not be empty")
+    global db, search
+    db = MoleculeDB(payload.path)
+    search = SearchEngine(db)
+    return {"path": db.db_path}
+
+
 @app.post("/api/molecules", response_model=MoleculeRead, status_code=201)
 async def create_molecule(payload: MoleculeCreate):
     try:
