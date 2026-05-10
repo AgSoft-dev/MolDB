@@ -10,9 +10,14 @@ from moldb import MoleculeDB, SearchEngine, chem
 from moldb.models import Molecule, MoleculeCreate, MoleculeRead, MoleculeUpdate
 from moldb.exceptions import InvalidSMILES, DuplicateMolecule, MoleculeNotFound
 
-DB_PATH = os.environ.get("MOLDB_PATH", "moldb.sqlite")
-db = MoleculeDB(DB_PATH)
-search = SearchEngine(db)
+DB_PATH = os.environ.get("MOLDB_PATH", "").strip()
+db = None
+search = None
+current_db_path = ""
+if DB_PATH and os.path.exists(DB_PATH):
+    db = MoleculeDB(DB_PATH)
+    search = SearchEngine(db)
+    current_db_path = DB_PATH
 
 app = FastAPI(title="MolDB", version="0.1.0", docs_url="/api/docs")
 
@@ -35,25 +40,67 @@ async def index():
 
 class DBPathPayload(BaseModel):
     path: str
+    create: Optional[bool] = False
+    migrate: Optional[bool] = False
 
 
 class DBPathResponse(BaseModel):
     path: str
 
 
+def get_db_obj() -> MoleculeDB:
+    if db is None:
+        raise HTTPException(400, "No database loaded. Select an existing SQLite file or create one in advanced mode.")
+    return db
+
+
+def get_search_engine() -> SearchEngine:
+    if search is None:
+        raise HTTPException(400, "No database loaded. Select an existing SQLite file or create one in advanced mode.")
+    return search
+
+
 @app.get("/api/db/path", response_model=DBPathResponse)
 async def get_db_path():
-    return {"path": db.db_path}
+    return {"path": current_db_path}
 
 
 @app.post("/api/db/path", response_model=DBPathResponse)
 async def set_db_path(payload: DBPathPayload):
     if not payload.path.strip():
         raise HTTPException(422, "Database path must not be empty")
-    global db, search
-    db = MoleculeDB(payload.path)
+    path = payload.path.strip()
+    create = payload.create or False
+    migrate = payload.migrate or False
+    if not os.path.exists(path) and not create:
+        raise HTTPException(404, "Database file does not exist. Use advanced mode to create a new database.")
+    try:
+        new_db = MoleculeDB(path, create=create, migrate=migrate)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    global db, search, current_db_path
+    db = new_db
     search = SearchEngine(db)
-    return {"path": db.db_path}
+    current_db_path = path
+    return {"path": current_db_path}
+
+
+class MigrationStatusResponse(BaseModel):
+    pending: int
+
+
+@app.get("/api/db/migrate", response_model=MigrationStatusResponse)
+async def get_migration_status():
+    pending = get_db_obj().needs_migration()
+    return {"pending": pending}
+
+
+@app.post("/api/db/migrate", response_model=MigrationStatusResponse)
+async def apply_migration():
+    pending = get_db_obj().apply_migrations()
+    return {"pending": pending}
 
 
 @app.post("/api/molecules", response_model=MoleculeRead, status_code=201)
@@ -79,20 +126,20 @@ async def create_molecule(payload: MoleculeCreate):
         molecular_weight=mw,
     )
     try:
-        return db.add(mol)
+        return get_db_obj().add(mol)
     except DuplicateMolecule as e:
         raise HTTPException(409, str(e))
 
 
 @app.get("/api/molecules", response_model=list[MoleculeRead])
 async def list_molecules(limit: int = 100, offset: int = 0):
-    return db.list_all(limit=limit, offset=offset)
+    return get_db_obj().list_all(limit=limit, offset=offset)
 
 
 @app.get("/api/molecules/{mol_id}", response_model=MoleculeRead)
 async def get_molecule(mol_id: int):
     try:
-        return db.get(mol_id)
+        return get_db_obj().get(mol_id)
     except MoleculeNotFound:
         raise HTTPException(404, f"Molecule {mol_id} not found")
 
@@ -100,7 +147,7 @@ async def get_molecule(mol_id: int):
 @app.put("/api/molecules/{mol_id}", response_model=MoleculeRead)
 async def update_molecule(mol_id: int, data: MoleculeUpdate):
     try:
-        return db.update(mol_id, data)
+        return get_db_obj().update(mol_id, data)
     except MoleculeNotFound:
         raise HTTPException(404, f"Molecule {mol_id} not found")
 
@@ -108,7 +155,7 @@ async def update_molecule(mol_id: int, data: MoleculeUpdate):
 @app.delete("/api/molecules/{mol_id}", status_code=204)
 async def delete_molecule(mol_id: int):
     try:
-        db.delete(mol_id)
+        get_db_obj().delete(mol_id)
     except MoleculeNotFound:
         raise HTTPException(404, f"Molecule {mol_id} not found")
 
@@ -118,7 +165,7 @@ async def delete_molecule(mol_id: int):
 @app.get("/api/molecules/{mol_id}/svg")
 async def get_svg(mol_id: int):
     try:
-        mol = db.get(mol_id)
+        mol = get_db_obj().get(mol_id)
     except MoleculeNotFound:
         raise HTTPException(404)
     svg = mol.svg_cache or chem.smiles_to_svg(mol.smiles)
@@ -132,7 +179,7 @@ async def search_molecules(
     q: Optional[str] = None,
 ):
     if q:
-        return search.by_all(q)
+        return get_search_engine().by_all(q)
     raise HTTPException(400, "Provide q parameter")
 
 
@@ -150,10 +197,10 @@ class SimilarityResult(BaseModel):
 @app.post("/api/search/structure", response_model=list[SimilarityResult])
 async def search_structure(body: StructureQuery):
     if body.mode == "substructure":
-        hits = search.by_substructure(body.smiles)
-        return [SimilarityResult(molecule=m, score=1.0) for m in hits]
-    hits = search.by_structure(body.smiles, threshold=body.threshold)
-    return [SimilarityResult(molecule=m, score=s) for m, s in hits]
+        hits = get_search_engine().by_substructure(body.smiles)
+        return [SimilarityResult(molecule=MoleculeRead.from_orm(m), score=1.0) for m in hits]
+    hits = get_search_engine().by_structure(body.smiles, threshold=body.threshold)
+    return [SimilarityResult(molecule=MoleculeRead.from_orm(m), score=s) for m, s in hits]
 
 
 # ── Chem utilities ─────────────────────────────────────────────────────────────

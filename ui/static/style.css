@@ -59,6 +59,39 @@ nav button {
 }
 nav button:hover { background: rgba(255,255,255,.22); }
 
+nav button.status {
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.4);
+  font-weight: 600;
+}
+nav button.status.online { color: #d1fae5; }
+nav button.status.offline { color: #fecaca; }
+nav button.status:hover { background: rgba(255,255,255,.28); }
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .8rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,.2);
+  cursor: default;
+}
+.status-indicator::before {
+  content: '';
+  width: .6rem;
+  height: .6rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .85;
+}
+.status-indicator.online { color: #34d399; }
+.status-indicator.offline { color: #fca5a5; }
+
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 main { padding: 2rem; max-width: 1100px; margin: auto; }
 .panel { display: none; }

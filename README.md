@@ -20,6 +20,8 @@ python run.py
 # Opens http://localhost:8000 in your browser automatically
 ```
 
+The SQLite database is not created automatically unless you explicitly create one in advanced mode. On first run, use the UI to select an existing `.sqlite` file or, in advanced mode, create a new database and apply schema migration. The `MOLDB_PATH` environment variable is optional and only useful for development; packaged executables should use the UI file picker instead.
+
 ### 3. Run tests
 
 ```bash

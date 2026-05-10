@@ -59,6 +59,18 @@ class SearchEngine:
                 continue
         return sorted(results, key=lambda x: -x[1])[:limit]
 
+    def by_substructure(self, query_smiles: str, limit: int = 20) -> list[Molecule]:
+        results: list[Molecule] = []
+        for mol in self.db.list_all(limit=10_000):
+            if not mol.smiles:
+                continue
+            try:
+                if chem.has_substructure(mol.smiles, query_smiles):
+                    results.append(mol)
+            except Exception:
+                continue
+        return results[:limit]
+
     def by_all(self, query: str, limit: int = 100) -> list[Molecule]:
         all_mols = self.db.list_all(limit=100_000)
         q_lower = query.lower()

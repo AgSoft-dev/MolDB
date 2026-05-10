@@ -10,9 +10,10 @@
   <header>
     <h1>⬡ MolDB</h1>
     <nav>
-      <button onclick="showPanel('search')">Search</button>
+      <button id="search-nav-btn" onclick="showPanel('search')">Search</button>
       <button id="add-nav-btn" onclick="showPanel('add')">Add Molecule</button>
-      <button onclick="showPanel('list')">All Molecules</button>
+      <button id="list-nav-btn" onclick="showPanel('list')">All Molecules</button>
+      <span id="db-status-btn" class="status-indicator offline">DB offline</span>
     </nav>
     <label style="position:absolute; top:1rem; right:1rem; font-size:0.9rem;">
       <input type="checkbox" id="advanced-mode" /> Advanced Mode
@@ -24,9 +25,13 @@
     <!-- SEARCH PANEL -->
     <section id="panel-search" class="panel active">
       <h2>Search</h2>
-      <div class="search-bar">
+      <div id="search-input-area" class="search-bar">
         <input id="search-input" type="text" placeholder="Search all fields…" />
         <button onclick="doSearch()">Search</button>
+      </div>
+
+      <div id="db-required-notice" class="err" style="display:none; margin:1rem 0;">
+        No database loaded. Choose an existing .sqlite file or enable advanced mode and create a database.
       </div>
 
       <div class="search-bar" style="margin-top:1rem; gap:0.5rem; align-items:center;">
@@ -37,6 +42,10 @@
         <input type="file" id="db-file-input" accept=".sqlite" style="display:none;" />
         <button class="secondary" onclick="document.getElementById('db-file-input').click();">Browse</button>
         <span id="db-path-result" style="font-size:0.9rem; color:#555;"></span>
+      </div>
+      <div id="db-advanced-actions" style="display:none; margin-top:0.75rem; gap:0.75rem; align-items:center;">
+        <button id="db-create-btn" class="secondary" style="display:none;" onclick="createDb()">Create database</button>
+        <button id="db-migrate-btn" class="secondary" style="display:none;" onclick="applyMigration()">Migration available</button>
       </div>
 
       <div id="structure-search-box">

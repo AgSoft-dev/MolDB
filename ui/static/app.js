@@ -1,7 +1,12 @@
-/* ── Panel navigation ──────────────────────────────────────────────────────── */
+/* ── DB state & panel navigation ─────────────────────────────────────────── */
+let dbLoaded = false;
+
 function showPanel(name) {
   if (name === 'add' && !isAdvancedMode()) {
     return; // Prevent showing add panel if not advanced
+  }
+  if (name !== 'search' && !dbLoaded) {
+    return; // Block list/add when no DB is loaded
   }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
@@ -20,7 +25,36 @@ function setAdvancedMode(enabled) {
 function updateAdvancedUI() {
   const advanced = isAdvancedMode();
   const addBtn = document.getElementById('add-nav-btn');
-  if (addBtn) addBtn.style.display = advanced ? 'inline-block' : 'none';
+  const searchBtn = document.getElementById('search-nav-btn');
+  const listBtn = document.getElementById('list-nav-btn');
+  const statusBtn = document.getElementById('db-status-btn');
+  if (addBtn) addBtn.style.display = advanced && dbLoaded ? 'inline-block' : 'none';
+  if (searchBtn) searchBtn.style.display = dbLoaded ? 'inline-block' : 'none';
+  if (listBtn) listBtn.style.display = dbLoaded ? 'inline-block' : 'none';
+  if (statusBtn) statusBtn.style.display = 'inline-block';
+  const advancedActions = document.getElementById('db-advanced-actions');
+  if (advancedActions) {
+    advancedActions.style.display = isAdvancedMode() ? 'flex' : 'none';
+  }
+  const createBtn = document.getElementById('db-create-btn');
+  const migrateBtn = document.getElementById('db-migrate-btn');
+  if (createBtn) {
+    createBtn.style.display = isAdvancedMode() && !dbLoaded ? 'inline-block' : 'none';
+  }
+  if (migrateBtn) {
+    migrateBtn.style.display = isAdvancedMode() && dbLoaded && pendingMigrations > 0 ? 'inline-block' : 'none';
+  }
+
+  if (!dbLoaded) {
+    document.getElementById('search-input-area').style.display = 'none';
+    document.getElementById('structure-search-box').style.display = 'none';
+    document.getElementById('db-required-notice').style.display = 'block';
+  } else {
+    document.getElementById('search-input-area').style.display = 'flex';
+    document.getElementById('structure-search-box').style.display = 'block';
+    document.getElementById('db-required-notice').style.display = 'none';
+  }
+
   // If add panel is active and advanced disabled, switch to search
   if (!advanced && document.getElementById('panel-add').classList.contains('active')) {
     showPanel('search');
@@ -106,6 +140,7 @@ window.addEventListener('load', () => {
       setAdvancedMode(e.target.checked);
     });
   }
+  refreshDbStatus();
   updateAdvancedUI();
 });
 
@@ -127,6 +162,107 @@ async function loadDbPath() {
   }
 }
 
+function setDbReady(ready) {
+  dbLoaded = ready;
+  const statusBtn = document.getElementById('db-status-btn');
+  if (!statusBtn) return;
+  if (ready) {
+    statusBtn.textContent = 'DB online';
+    statusBtn.classList.remove('offline');
+    statusBtn.classList.add('online');
+    statusBtn.title = 'Database is loaded';
+  } else {
+    statusBtn.textContent = 'DB offline';
+    statusBtn.classList.remove('online');
+    statusBtn.classList.add('offline');
+    statusBtn.title = 'No database loaded';
+  }
+  updateAdvancedUI();
+}
+
+async function refreshDbStatus() {
+  try {
+    const data = await api('/db/path');
+    const path = data?.path || '';
+    if (path) {
+      setStoredDbPath(path);
+      document.getElementById('db-path-input').value = path;
+      document.getElementById('db-path-result').textContent = `Using DB: ${path}`;
+      setDbReady(true);
+      await refreshMigrationStatus();
+    } else {
+      setDbReady(false);
+    }
+  } catch (e) {
+    setDbReady(false);
+    document.getElementById('db-path-result').textContent = `DB offline: ${escHtml(e.message)}`;
+  }
+}
+
+let pendingMigrations = 0;
+
+async function refreshMigrationStatus() {
+  if (!dbLoaded) {
+    pendingMigrations = 0;
+    updateAdvancedUI();
+    return;
+  }
+  try {
+    const status = await api('/db/migrate');
+    pendingMigrations = status.pending || 0;
+  } catch (e) {
+    pendingMigrations = 0;
+  }
+  const migrateBtn = document.getElementById('db-migrate-btn');
+  if (migrateBtn) {
+    if (pendingMigrations > 0) {
+      migrateBtn.textContent = `${pendingMigrations} migration available, click to apply`;
+    } else {
+      migrateBtn.textContent = 'No migrations pending';
+    }
+  }
+  updateAdvancedUI();
+}
+
+async function createDb() {
+  const input = document.getElementById('db-path-input');
+  const result = document.getElementById('db-path-result');
+  const path = input.value.trim();
+  if (!path) {
+    result.textContent = 'Please enter a database path.';
+    return;
+  }
+  try {
+    await api('/db/path', {
+      method: 'POST',
+      body: JSON.stringify({ path, create: true, migrate: false }),
+    });
+    setStoredDbPath(path);
+    result.textContent = `Created DB: ${path}`;
+    setDbReady(true);
+    await refreshMigrationStatus();
+  } catch (e) {
+    setDbReady(false);
+    result.textContent = `Failed to create DB: ${escHtml(e.message)}`;
+  }
+}
+
+async function applyMigration() {
+  const result = document.getElementById('db-path-result');
+  try {
+    const status = await api('/db/migrate', { method: 'POST' });
+    pendingMigrations = status.pending || 0;
+    if (pendingMigrations === 0) {
+      result.textContent = 'Migration applied successfully.';
+    } else {
+      result.textContent = `Still ${pendingMigrations} migrations pending.`;
+    }
+  } catch (e) {
+    result.textContent = `Migration failed: ${escHtml(e.message)}`;
+  }
+  await refreshMigrationStatus();
+}
+
 async function setDbPath() {
   const input = document.getElementById('db-path-input');
   const result = document.getElementById('db-path-result');
@@ -138,11 +274,14 @@ async function setDbPath() {
   try {
     await api('/db/path', {
       method: 'POST',
-      body: JSON.stringify({ path }),
+      body: JSON.stringify({ path, create: false, migrate: false }),
     });
     setStoredDbPath(path);
     result.textContent = `Using DB: ${path}`;
+    setDbReady(true);
+    await refreshMigrationStatus();
   } catch (e) {
+    setDbReady(false);
     result.textContent = `Failed to set DB: ${escHtml(e.message)}`;
   }
 }
@@ -199,6 +338,10 @@ document.getElementById('search-input').addEventListener('input', () => {
 });
 
 async function doSearch() {
+  if (!dbLoaded) {
+    showError('search-results', 'Database not loaded. Select a valid SQLite file first.');
+    return;
+  }
   const q = document.getElementById('search-input').value.trim();
   if (!q) {
     document.getElementById('search-results').innerHTML = '';
@@ -212,6 +355,10 @@ async function doSearch() {
 
 /* ── Structure search ─────────────────────────────────────────────────────── */
 async function doStructureSearch() {
+  if (!dbLoaded) {
+    showError('search-results', 'Database not loaded. Select a valid SQLite file first.');
+    return;
+  }
   const smiles = await getSmiles('ketcher-search');
   if (!smiles) return;
   const threshold = parseFloat(document.getElementById('threshold').value);
