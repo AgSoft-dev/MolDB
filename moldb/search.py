@@ -59,8 +59,8 @@ class SearchEngine:
                 continue
         return sorted(results, key=lambda x: -x[1])[:limit]
 
-    def by_all(self, query: str, limit: int = 20) -> list[Molecule]:
-        all_mols = self.db.list_all(limit=10_000)
+    def by_all(self, query: str, limit: int = 100) -> list[Molecule]:
+        all_mols = self.db.list_all(limit=100_000)
         q_lower = query.lower()
         results = []
         for m in all_mols:

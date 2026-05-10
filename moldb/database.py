@@ -1,5 +1,6 @@
 from __future__ import annotations
 from sqlmodel import SQLModel, Session, create_engine, select
+from sqlalchemy import text
 from .models import Molecule, MoleculeUpdate
 from .exceptions import MoleculeNotFound, DuplicateMolecule
 
@@ -14,10 +15,10 @@ class MoleculeDB:
 
     def _ensure_project_column_exists(self) -> None:
         with self.engine.connect() as conn:
-            result = conn.execute("PRAGMA table_info('molecule')")
+            result = conn.execute(text("PRAGMA table_info('molecule')"))
             columns = [row[1] for row in result.fetchall()]
             if 'project' not in columns:
-                conn.execute("ALTER TABLE molecule ADD COLUMN project TEXT")
+                conn.execute(text("ALTER TABLE molecule ADD COLUMN project TEXT"))
                 conn.commit()
 
     def add(self, mol: Molecule) -> Molecule:

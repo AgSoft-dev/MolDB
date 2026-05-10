@@ -11,9 +11,12 @@
     <h1>⬡ MolDB</h1>
     <nav>
       <button onclick="showPanel('search')">Search</button>
-      <button onclick="showPanel('add')">Add Molecule</button>
+      <button id="add-nav-btn" onclick="showPanel('add')">Add Molecule</button>
       <button onclick="showPanel('list')">All Molecules</button>
     </nav>
+    <label style="position:absolute; top:1rem; right:1rem; font-size:0.9rem;">
+      <input type="checkbox" id="advanced-mode" /> Advanced Mode
+    </label>
   </header>
 
   <main>
@@ -81,7 +84,8 @@
         <label>CAS Number <input id="add-cas" placeholder="e.g. 50-78-2" /></label>
         <label>Project <input id="add-project" placeholder="e.g. API screening" /></label>
         <label>Notes <textarea id="add-notes" rows="3"></textarea></label>
-        <button onclick="submitAdd()">Save Molecule</button>
+        <button id="submit-btn" onclick="submitAddOrUpdate()">Save Molecule</button>
+        <button id="cancel-btn" class="secondary" onclick="cancelEdit()" style="display:none;">Cancel</button>
       </div>
       <div id="add-result"></div>
     </section>
@@ -89,6 +93,11 @@
     <!-- LIST PANEL -->
     <section id="panel-list" class="panel">
       <h2>All Molecules</h2>
+      <div class="search-bar" style="margin-bottom:1rem;">
+        <input id="list-search-input" type="text" placeholder="Filter molecules…" />
+        <button onclick="filterList()">Filter</button>
+        <button class="secondary" onclick="clearListFilter()">Clear</button>
+      </div>
       <button class="secondary" onclick="loadList()">↺ Refresh</button>
       <div id="list-results"></div>
     </section>

@@ -1,8 +1,40 @@
 /* ── Panel navigation ──────────────────────────────────────────────────────── */
 function showPanel(name) {
+  if (name === 'add' && !isAdvancedMode()) {
+    return; // Prevent showing add panel if not advanced
+  }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   if (name === 'list') loadList();
+}
+
+function isAdvancedMode() {
+  return window.localStorage.getItem('advancedMode') === 'true';
+}
+
+function setAdvancedMode(enabled) {
+  window.localStorage.setItem('advancedMode', enabled ? 'true' : 'false');
+  updateAdvancedUI();
+}
+
+function updateAdvancedUI() {
+  const advanced = isAdvancedMode();
+  const addBtn = document.getElementById('add-nav-btn');
+  if (addBtn) addBtn.style.display = advanced ? 'inline-block' : 'none';
+  // If add panel is active and advanced disabled, switch to search
+  if (!advanced && document.getElementById('panel-add').classList.contains('active')) {
+    showPanel('search');
+  }
+  // Re-render lists to show/hide delete buttons
+  if (document.getElementById('panel-list').classList.contains('active')) {
+    loadList();
+  }
+  if (document.getElementById('panel-search').classList.contains('active')) {
+    // Toggle delete visibility on existing search results
+    document.querySelectorAll('.mol-card button.danger').forEach(btn => {
+      btn.style.display = advanced ? 'inline-block' : 'none';
+    });
+  }
 }
 
 /* ── Ketcher iframe API helpers ───────────────────────────────────────────── */
@@ -65,6 +97,16 @@ window.addEventListener('load', () => {
   if (pathInput) {
     pathInput.addEventListener('change', setDbPath);
   }
+
+  // Advanced mode
+  const advancedCheckbox = document.getElementById('advanced-mode');
+  if (advancedCheckbox) {
+    advancedCheckbox.checked = isAdvancedMode();
+    advancedCheckbox.addEventListener('change', e => {
+      setAdvancedMode(e.target.checked);
+    });
+  }
+  updateAdvancedUI();
 });
 
 function getStoredDbPath() {
@@ -120,6 +162,7 @@ async function api(path, opts = {}) {
 
 /* ── Render helpers ───────────────────────────────────────────────────────── */
 function molCard(m, score = null) {
+  const advanced = isAdvancedMode();
   return `
     <div class="mol-card" id="mol-${m.id}">
       <div class="mol-svg">${m.svg_cache || '<span class="no-struct">No structure</span>'}</div>
@@ -132,7 +175,7 @@ function molCard(m, score = null) {
         <small class="smiles">${escHtml(m.smiles)}</small>
         ${score !== null ? `<span class="score">Tanimoto: ${score.toFixed(3)}</span>` : ''}
         ${m.notes ? `<p class="notes">${escHtml(m.notes)}</p>` : ''}
-        <button class="danger" onclick="deleteMol(${m.id})">Delete</button>
+        ${advanced ? `<button class="secondary" onclick="editMol(${m.id})">Edit</button> <button class="danger" onclick="deleteMol(${m.id})">Delete</button>` : ''}
       </div>
     </div>`;
 }
@@ -184,8 +227,44 @@ async function doStructureSearch() {
   } catch (e) { showError('search-results', e.message); }
 }
 
-/* ── Add molecule ─────────────────────────────────────────────────────────── */
-async function submitAdd() {
+/* ── Global state ─────────────────────────────────────────────────────────── */
+let editMode = null; // null or {id: number}
+let allMols = []; // For list filtering
+
+/* ── Edit molecule ─────────────────────────────────────────────────────────── */
+async function editMol(id) {
+  try {
+    const mol = await api(`/molecules/${id}`);
+    // Populate form
+    document.getElementById('add-name').value = mol.name || '';
+    document.getElementById('add-smiles').value = mol.smiles || '';
+    document.getElementById('add-cas').value = mol.cas_number || '';
+    document.getElementById('add-project').value = mol.project || '';
+    document.getElementById('add-notes').value = mol.notes || '';
+    // Switch to add panel
+    showPanel('add');
+    // Set edit mode
+    editMode = { id };
+    document.getElementById('submit-btn').textContent = 'Update Molecule';
+    document.getElementById('cancel-btn').style.display = 'inline-block';
+    document.getElementById('add-result').innerHTML = `<p>Editing molecule ID ${id}</p>`;
+  } catch (e) {
+    alert('Failed to load molecule for editing: ' + e.message);
+  }
+}
+
+function cancelEdit() {
+  editMode = null;
+  document.getElementById('submit-btn').textContent = 'Save Molecule';
+  document.getElementById('cancel-btn').style.display = 'none';
+  document.getElementById('add-result').innerHTML = '';
+  // Clear form
+  ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+/* ── Add/Update molecule ───────────────────────────────────────────────────── */
+async function submitAddOrUpdate() {
   const payload = {
     name:       document.getElementById('add-name').value.trim(),
     smiles:     document.getElementById('add-smiles').value.trim(),
@@ -197,13 +276,34 @@ async function submitAdd() {
     document.getElementById('add-result').innerHTML = '<p class="err">Name and SMILES are required.</p>';
     return;
   }
+
   try {
-    const mol = await api('/molecules', { method: 'POST', body: JSON.stringify(payload) });
-    document.getElementById('add-result').innerHTML =
-      `<p class="ok">✓ Saved: <strong>${escHtml(mol.name)}</strong> (id=${mol.id})</p>`;
-    ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+    let mol;
+    if (editMode) {
+      // Update
+      mol = await api(`/molecules/${editMode.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      document.getElementById('add-result').innerHTML = `<p class="ok">✓ Updated: <strong>${escHtml(mol.name)}</strong> (id=${mol.id})</p>`;
+      // Reset edit mode
+      editMode = null;
+      document.getElementById('submit-btn').textContent = 'Save Molecule';
+      document.getElementById('cancel-btn').style.display = 'none';
+      // Clear form
+      ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      // Refresh lists if needed
+      if (document.getElementById('panel-list').classList.contains('active')) {
+        loadList();
+      }
+    } else {
+      // Add
+      mol = await api('/molecules', { method: 'POST', body: JSON.stringify(payload) });
+      document.getElementById('add-result').innerHTML = `<p class="ok">✓ Saved: <strong>${escHtml(mol.name)}</strong> (id=${mol.id})</p>`;
+      // Clear form
+      ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+    }
   } catch (e) {
     document.getElementById('add-result').innerHTML = `<p class="err">✗ ${escHtml(e.message)}</p>`;
   }
@@ -212,9 +312,38 @@ async function submitAdd() {
 /* ── List all ─────────────────────────────────────────────────────────────── */
 async function loadList() {
   try {
-    const mols = await api('/molecules?limit=200');
-    renderList('list-results', mols);
+    allMols = await api('/molecules?limit=10000'); // Load more for filtering
+    document.getElementById('list-search-input').value = '';
+    renderList('list-results', allMols);
   } catch (e) { showError('list-results', e.message); }
+}
+
+/* ── List filtering ───────────────────────────────────────────────────────── */
+let listFilterTimeout;
+document.getElementById('list-search-input').addEventListener('input', () => {
+  clearTimeout(listFilterTimeout);
+  listFilterTimeout = setTimeout(filterList, 300);
+});
+
+function filterList() {
+  const q = document.getElementById('list-search-input').value.trim().toLowerCase();
+  if (!q) {
+    renderList('list-results', allMols);
+    return;
+  }
+  const filtered = allMols.filter(m =>
+    (m.name || '').toLowerCase().includes(q) ||
+    (m.cas_number || '').toLowerCase().includes(q) ||
+    (m.smiles || '').toLowerCase().includes(q) ||
+    (m.project || '').toLowerCase().includes(q) ||
+    (m.notes || '').toLowerCase().includes(q)
+  );
+  renderList('list-results', filtered);
+}
+
+function clearListFilter() {
+  document.getElementById('list-search-input').value = '';
+  renderList('list-results', allMols);
 }
 
 /* ── Delete ───────────────────────────────────────────────────────────────── */
@@ -222,6 +351,7 @@ async function deleteMol(id) {
   if (!confirm('Delete this molecule?')) return;
   try {
     await api(`/molecules/${id}`, { method: 'DELETE' });
+    allMols = allMols.filter(m => m.id !== id);
     document.getElementById('mol-' + id)?.remove();
   } catch (e) { alert(e.message); }
 }
