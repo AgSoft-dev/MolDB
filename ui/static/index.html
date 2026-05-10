@@ -5,13 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MolDB</title>
   <link rel="stylesheet" href="/static/style.css" />
-  <!--
-    Kekule.js: swap the CDN URL below for a local bundle in your offline/PyInstaller build.
-    Download from: https://github.com/partridgejiang/Kekule.js/releases
-    Then place kekule.js in ui/static/ and update the src to "/static/kekule.js"
-  -->
-  <script src="https://cdn.jsdelivr.net/npm/kekule/dist/kekule.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/kekule/theme/default/kekule.css" />
 </head>
 <body>
   <header>
@@ -40,7 +33,14 @@
 
       <div id="structure-search-box">
         <h3>Structure / Similarity Search</h3>
-        <div id="kekule-search" class="kekule-widget"></div>
+        <!--
+          Ketcher runs inside an iframe pointing to its own index.html.
+          The parent communicates via iframe.contentWindow.ketcher (async API).
+        -->
+        <iframe id="ketcher-search"
+                src="/ketcher/index.html"
+                class="ketcher-frame"
+                title="Ketcher structure editor (search)"></iframe>
         <div class="search-options">
           <label>
             Threshold:
@@ -59,8 +59,13 @@
     <!-- ADD PANEL -->
     <section id="panel-add" class="panel">
       <h2>Add Molecule</h2>
-      <div id="kekule-add" class="kekule-widget"></div>
-      <button class="secondary" onclick="importSmilesFromDrawing()">↓ Import SMILES from Drawing</button>
+      <iframe id="ketcher-add"
+              src="/ketcher/index.html"
+              class="ketcher-frame"
+              title="Ketcher structure editor (add)"></iframe>
+      <button class="secondary" onclick="importSmilesFromDrawing()" style="margin-top:.5rem;">
+        ↓ Import SMILES from Drawing
+      </button>
 
       <div id="add-form">
         <label>Name <span class="req">*</span><input id="add-name" /></label>

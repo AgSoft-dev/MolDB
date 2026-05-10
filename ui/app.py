@@ -19,6 +19,11 @@ app = FastAPI(title="MolDB", version="0.1.0", docs_url="/api/docs")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Ketcher standalone build — place the unzipped release at ui/static/ketcher/
+KETCHER_DIR = os.path.join(STATIC_DIR, "ketcher")
+if os.path.isdir(KETCHER_DIR):
+    app.mount("/ketcher", StaticFiles(directory=KETCHER_DIR, html=True), name="ketcher")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index():

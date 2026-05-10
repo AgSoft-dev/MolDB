@@ -105,8 +105,15 @@ button.danger:hover { background: var(--danger-hover); }
 .search-options { margin-top: .8rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
 .search-options label { display: flex; align-items: center; gap: .3rem; font-size: .9rem; }
 
-/* ── Kekule widget ───────────────────────────────────────────────────────── */
-.kekule-widget { width: 420px; height: 290px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; }
+/* ── Ketcher iframe ──────────────────────────────────────────────────────── */
+.ketcher-frame {
+  width: 100%;
+  max-width: 900px;
+  height: 400px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: block;
+}
 
 /* ── Add form ────────────────────────────────────────────────────────────── */
 #add-form {
