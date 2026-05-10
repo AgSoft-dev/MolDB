@@ -5,6 +5,11 @@ pycache/
 *$py.class
 *.pyc
 
+# SQLite database files
+
+*.sqlite
+*.db
+
 # Virtual environments
 
 venv/
