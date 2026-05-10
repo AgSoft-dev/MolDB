@@ -130,18 +130,10 @@ async def get_svg(mol_id: int):
 @app.get("/api/search", response_model=list[MoleculeRead])
 async def search_molecules(
     q: Optional[str] = None,
-    cas: Optional[str] = None,
-    smiles: Optional[str] = None,
 ):
     if q:
-        return search.by_name(q)
-    if cas:
-        result = search.by_cas(cas)
-        return [result] if result else []
-    if smiles:
-        result = search.by_smiles_exact(smiles)
-        return [result] if result else []
-    raise HTTPException(400, "Provide q, cas, or smiles parameter")
+        return search.by_all(q)
+    raise HTTPException(400, "Provide q parameter")
 
 
 class StructureQuery(BaseModel):

@@ -149,12 +149,20 @@ function renderList(selector, mols, getScore = null) {
 }
 
 /* ── Text search ──────────────────────────────────────────────────────────── */
+let searchTimeout;
+document.getElementById('search-input').addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 300); // Debounce search
+});
+
 async function doSearch() {
-  const q    = document.getElementById('search-input').value.trim();
-  const type = document.getElementById('search-type').value;
-  if (!q) return;
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) {
+    document.getElementById('search-results').innerHTML = '';
+    return;
+  }
   try {
-    const results = await api(`/search?${type}=${encodeURIComponent(q)}`);
+    const results = await api(`/search?q=${encodeURIComponent(q)}`);
     renderList('search-results', results);
   } catch (e) { showError('search-results', e.message); }
 }
