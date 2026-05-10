@@ -47,3 +47,17 @@ def test_by_smiles_exact(populated_db):
     mol = se.by_smiles_exact("c1ccccc1")
     assert mol is not None
     assert mol.name == "Benzene"
+
+
+def test_by_all_searches_project(populated_db):
+    populated_db.add(Molecule(name="API Molecule", smiles="CCO", project="API Screening"))
+    se = SearchEngine(populated_db)
+    results = se.by_all("api")
+    assert any(m.project == "API Screening" for m in results)
+
+
+def test_by_all_searches_notes(populated_db):
+    populated_db.add(Molecule(name="Note Test", smiles="CCO", notes="special chemistry notes"))
+    se = SearchEngine(populated_db)
+    results = se.by_all("chemistry")
+    assert any(m.notes == "special chemistry notes" for m in results)
