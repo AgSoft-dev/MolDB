@@ -126,7 +126,7 @@ button.danger:hover { background: var(--danger-hover); }
 }
 .search-bar input { flex: 1; min-width: 200px; }
 
-#structure-search-box {
+.structure-search-box {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -172,7 +172,22 @@ input[type="text"], input:not([type]), textarea, select {
   transition: border-color .15s;
 }
 input:focus, textarea:focus, select:focus { border-color: var(--accent); }
-
+.pagination-controls {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+.pagination-controls span {
+  color: var(--text-muted);
+  font-size: .95rem;
+}
+button.secondary[disabled] {
+  opacity: .55;
+  cursor: not-allowed;
+}
 /* ── Molecule cards ──────────────────────────────────────────────────────── */
 #search-results, #list-results { margin-top: 1rem; }
 

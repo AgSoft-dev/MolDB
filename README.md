@@ -1,10 +1,47 @@
 # MolDB — Local Molecule Database
 
+<p align="center">
+  <img src="docs/screenshots/banner.png" alt="MolDB Banner" width="900">
+</p>
+
+<p align="center">
+  <strong>Fully Offline Molecule Database for Chemists</strong>
+</p>
+
 A fully offline Python + web UI application for managing a chemistry molecule database.
 
-## Quick Start
+---
 
-### 1. Install dependencies
+# Screenshots
+
+## Molecule Browser and Structure Search
+
+![MolDB Molecule Browser](docs/screenshots/molecule-browser.png)
+
+> Browse, filter, and manage your local molecule collection with fast offline search.
+> Perform exact, similarity, and substructure searches using the integrated structure editor.
+
+---
+
+## Molecule Detail View
+
+![MolDB Molecule Detail](docs/screenshots/molecule-detail.png)
+
+> Inspect molecular structures, identifiers, properties, and generated 2D depictions.
+
+---
+
+## Molecule Editor
+
+![MolDB Molecule Editor](docs/screenshots/molecule-editor.png)
+
+> Add or edit molecules with validation, duplicate detection, and RDKit-powered processing.
+
+---
+
+# Quick Start
+
+## 1. Install dependencies
 
 ```bash
 # Recommended: use conda for RDKit
@@ -13,16 +50,18 @@ conda activate moldb
 pip install -r requirements.txt
 ```
 
-### 2. Run the app
+## 2. Run the app
 
 ```bash
 python run.py
 # Opens http://localhost:8000 in your browser automatically
 ```
 
-The SQLite database is not created automatically unless you explicitly create one in advanced mode. On first run, use the UI to select an existing `.sqlite` file or, in advanced mode, create a new database and apply schema migration. The `MOLDB_PATH` environment variable is optional and only useful for development; packaged executables should use the UI file picker instead.
+The SQLite database is not created automatically unless you explicitly create one in advanced mode. On first run, use the UI to select an existing `.sqlite` file or, in advanced mode, create a new database and apply schema migration.
 
-### 3. Run tests
+The `MOLDB_PATH` environment variable is optional and only useful for development; packaged executables should use the UI file picker instead.
+
+## 3. Run tests
 
 ```bash
 pytest tests/
@@ -30,39 +69,68 @@ pytest tests/
 
 ---
 
-## Features
+# Features
 
 - Add / edit / delete molecules
-- Search by name (fuzzy), CAS number, exact SMILES
-- Structure similarity search (Tanimoto) and substructure search via Kekule.js drawing widget
+- Search by:
+  - Name (fuzzy)
+  - CAS number
+  - Exact SMILES
+- Structure similarity search (Tanimoto)
+- Substructure search via Kekule.js drawing widget
 - 2D structure visualization (RDKit SVG rendering)
 - Duplicate detection via InChIKey
+- Fully offline operation
+- Interactive API documentation
 
-## Build Windows .exe
+---
+
+# Build Windows .exe
 
 ```bash
 conda activate moldb
 pip install pyinstaller
+
 cd build
 pyinstaller moldb.spec --clean
-# Output: build/../dist/MolDB.exe
+
+# Output:
+# dist/MolDB.exe
 ```
 
-## Project Structure
+---
 
+# Project Structure
+
+```text
+project-root/
+├── moldb/                  # Core library (importable)
+├── ui/                     # FastAPI app + static frontend
+├── tests/                  # Pytest suite
+├── build/                  # PyInstaller spec + RDKit hooks
+├── docs/
+│   └── screenshots/
+│       ├── banner.png
+│       ├── molecule-browser.png
+│       ├── molecule-detail.png
+│       ├── structure-search.png
+│       ├── molecule-editor.png
+│       └── api-docs.png
+├── run.py                  # Entrypoint
+└── README.md
 ```
-moldb/          # Core library (importable)
-ui/             # FastAPI app + static frontend
-tests/          # Pytest suite
-build/          # PyInstaller spec + RDKit hooks
-run.py          # Entrypoint
-```
 
-## API Docs
+---
 
-Run the app and visit [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+# API Docs
 
-## Tech Stack
+Run the application and visit:
+
+http://localhost:8000/api/docs
+
+---
+
+# Tech Stack
 
 | Layer | Choice |
 |---|---|
@@ -97,4 +165,8 @@ The key question is not *how many users* connect to MolDB, but *how many process
 
 If a multi-process deployment is needed short-term and write volume is low, you can reduce (but not eliminate) risk by enabling WAL mode: add `PRAGMA journal_mode=WAL;` on connection startup in `database.py`.
 
+---
 
+# License
+
+MIT License

@@ -5,12 +5,12 @@ function showPanel(name) {
   if (name === 'add' && !isAdvancedMode()) {
     return; // Prevent showing add panel if not advanced
   }
-  if (name !== 'search' && !dbLoaded) {
-    return; // Block list/add when no DB is loaded
+  if (name !== 'add' && !dbLoaded) {
+    return; // Block browse when no DB is loaded
   }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
-  if (name === 'list') loadList();
+  if (name === 'browse') loadBrowse();
 }
 
 function isAdvancedMode() {
@@ -25,12 +25,10 @@ function setAdvancedMode(enabled) {
 function updateAdvancedUI() {
   const advanced = isAdvancedMode();
   const addBtn = document.getElementById('add-nav-btn');
-  const searchBtn = document.getElementById('search-nav-btn');
-  const listBtn = document.getElementById('list-nav-btn');
+  const browseBtn = document.getElementById('browse-nav-btn');
   const statusBtn = document.getElementById('db-status-btn');
   if (addBtn) addBtn.style.display = advanced && dbLoaded ? 'inline-block' : 'none';
-  if (searchBtn) searchBtn.style.display = dbLoaded ? 'inline-block' : 'none';
-  if (listBtn) listBtn.style.display = dbLoaded ? 'inline-block' : 'none';
+  if (browseBtn) browseBtn.style.display = dbLoaded ? 'inline-block' : 'none';
   if (statusBtn) statusBtn.style.display = 'inline-block';
   const advancedActions = document.getElementById('db-advanced-actions');
   if (advancedActions) {
@@ -55,19 +53,13 @@ function updateAdvancedUI() {
     document.getElementById('db-required-notice').style.display = 'none';
   }
 
-  // If add panel is active and advanced disabled, switch to search
+  // If add panel is active and advanced disabled, switch to browse
   if (!advanced && document.getElementById('panel-add').classList.contains('active')) {
-    showPanel('search');
+    showPanel('browse');
   }
   // Re-render lists to show/hide delete buttons
-  if (document.getElementById('panel-list').classList.contains('active')) {
-    loadList();
-  }
-  if (document.getElementById('panel-search').classList.contains('active')) {
-    // Toggle delete visibility on existing search results
-    document.querySelectorAll('.mol-card button.danger').forEach(btn => {
-      btn.style.display = advanced ? 'inline-block' : 'none';
-    });
+  if (document.getElementById('panel-browse').classList.contains('active')) {
+    loadBrowse();
   }
 }
 
@@ -330,6 +322,48 @@ function renderList(selector, mols, getScore = null) {
   el.innerHTML = mols.map(m => molCard(m, getScore ? getScore(m) : null)).join('');
 }
 
+const PAGE_SIZE = 20;
+let activeResults = [];
+let currentPage = 1;
+
+function getPageCount() {
+  return Math.max(1, Math.ceil(activeResults.length / PAGE_SIZE));
+}
+
+function renderPagination() {
+  const pagination = document.getElementById('browse-pagination');
+  if (!pagination) return;
+  const pageCount = getPageCount();
+  if (pageCount <= 1) {
+    pagination.innerHTML = '';
+    return;
+  }
+  pagination.innerHTML = `
+    <div class="pagination-controls">
+      <button class="secondary" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">Prev</button>
+      <span>Page ${currentPage} / ${pageCount}</span>
+      <button class="secondary" ${currentPage === pageCount ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Next</button>
+    </div>
+  `;
+}
+
+function renderPage(getScore = null) {
+  if (currentPage < 1) currentPage = 1;
+  const pageCount = getPageCount();
+  if (currentPage > pageCount) currentPage = pageCount;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = activeResults.slice(start, start + PAGE_SIZE);
+  renderList('browse-results', pageItems, getScore);
+  renderPagination();
+}
+
+function changePage(page) {
+  const pageCount = getPageCount();
+  if (page < 1 || page > pageCount) return;
+  currentPage = page;
+  renderPage();
+}
+
 /* ── Text search ──────────────────────────────────────────────────────────── */
 let searchTimeout;
 document.getElementById('search-input').addEventListener('input', () => {
@@ -339,24 +373,27 @@ document.getElementById('search-input').addEventListener('input', () => {
 
 async function doSearch() {
   if (!dbLoaded) {
-    showError('search-results', 'Database not loaded. Select a valid SQLite file first.');
+    showError('browse-results', 'Database not loaded. Select a valid SQLite file first.');
     return;
   }
   const q = document.getElementById('search-input').value.trim();
   if (!q) {
-    document.getElementById('search-results').innerHTML = '';
+    await loadBrowse();
     return;
   }
   try {
     const results = await api(`/search?q=${encodeURIComponent(q)}`);
-    renderList('search-results', results);
-  } catch (e) { showError('search-results', e.message); }
+    currentResults = results;
+    activeResults = results;
+    currentPage = 1;
+    renderPage();
+  } catch (e) { showError('browse-results', e.message); }
 }
 
 /* ── Structure search ─────────────────────────────────────────────────────── */
 async function doStructureSearch() {
   if (!dbLoaded) {
-    showError('search-results', 'Database not loaded. Select a valid SQLite file first.');
+    showError('browse-results', 'Database not loaded. Select a valid SQLite file first.');
     return;
   }
   const smiles = await getSmiles('ketcher-search');
@@ -370,13 +407,16 @@ async function doStructureSearch() {
     });
     const scoreMap = {};
     results.forEach(r => { scoreMap[r.molecule.id] = r.score; });
-    renderList('search-results', results.map(r => r.molecule), m => scoreMap[m.id]);
-  } catch (e) { showError('search-results', e.message); }
+    currentResults = results.map(r => r.molecule);
+    activeResults = currentResults;
+    currentPage = 1;
+    renderPage(m => scoreMap[m.id]);
+  } catch (e) { showError('browse-results', e.message); }
 }
 
 /* ── Global state ─────────────────────────────────────────────────────────── */
 let editMode = null; // null or {id: number}
-let allMols = []; // For list filtering
+let currentResults = []; // For filtering
 
 /* ── Edit molecule ─────────────────────────────────────────────────────────── */
 async function editMol(id) {
@@ -439,8 +479,8 @@ async function submitAddOrUpdate() {
         document.getElementById(id).value = '';
       });
       // Refresh lists if needed
-      if (document.getElementById('panel-list').classList.contains('active')) {
-        loadList();
+      if (document.getElementById('panel-browse').classList.contains('active')) {
+        loadBrowse();
       }
     } else {
       // Add
@@ -456,41 +496,14 @@ async function submitAddOrUpdate() {
   }
 }
 
-/* ── List all ─────────────────────────────────────────────────────────────── */
-async function loadList() {
+/* ── Browse all ────────────────────────────────────────────────────── */
+async function loadBrowse() {
   try {
-    allMols = await api('/molecules?limit=10000'); // Load more for filtering
-    document.getElementById('list-search-input').value = '';
-    renderList('list-results', allMols);
-  } catch (e) { showError('list-results', e.message); }
-}
-
-/* ── List filtering ───────────────────────────────────────────────────────── */
-let listFilterTimeout;
-document.getElementById('list-search-input').addEventListener('input', () => {
-  clearTimeout(listFilterTimeout);
-  listFilterTimeout = setTimeout(filterList, 300);
-});
-
-function filterList() {
-  const q = document.getElementById('list-search-input').value.trim().toLowerCase();
-  if (!q) {
-    renderList('list-results', allMols);
-    return;
-  }
-  const filtered = allMols.filter(m =>
-    (m.name || '').toLowerCase().includes(q) ||
-    (m.cas_number || '').toLowerCase().includes(q) ||
-    (m.smiles || '').toLowerCase().includes(q) ||
-    (m.project || '').toLowerCase().includes(q) ||
-    (m.notes || '').toLowerCase().includes(q)
-  );
-  renderList('list-results', filtered);
-}
-
-function clearListFilter() {
-  document.getElementById('list-search-input').value = '';
-  renderList('list-results', allMols);
+    currentResults = await api('/molecules?limit=10000'); // Load more for pagination
+    activeResults = currentResults;
+    currentPage = 1;
+    renderPage();
+  } catch (e) { showError('browse-results', e.message); }
 }
 
 /* ── Delete ───────────────────────────────────────────────────────────────── */
@@ -498,8 +511,9 @@ async function deleteMol(id) {
   if (!confirm('Delete this molecule?')) return;
   try {
     await api(`/molecules/${id}`, { method: 'DELETE' });
-    allMols = allMols.filter(m => m.id !== id);
-    document.getElementById('mol-' + id)?.remove();
+    currentResults = currentResults.filter(m => m.id !== id);
+    activeResults = activeResults.filter(m => m.id !== id);
+    renderPage();
   } catch (e) { alert(e.message); }
 }
 
