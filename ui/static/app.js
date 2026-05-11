@@ -322,6 +322,48 @@ function renderList(selector, mols, getScore = null) {
   el.innerHTML = mols.map(m => molCard(m, getScore ? getScore(m) : null)).join('');
 }
 
+const PAGE_SIZE = 20;
+let activeResults = [];
+let currentPage = 1;
+
+function getPageCount() {
+  return Math.max(1, Math.ceil(activeResults.length / PAGE_SIZE));
+}
+
+function renderPagination() {
+  const pagination = document.getElementById('browse-pagination');
+  if (!pagination) return;
+  const pageCount = getPageCount();
+  if (pageCount <= 1) {
+    pagination.innerHTML = '';
+    return;
+  }
+  pagination.innerHTML = `
+    <div class="pagination-controls">
+      <button class="secondary" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">Prev</button>
+      <span>Page ${currentPage} / ${pageCount}</span>
+      <button class="secondary" ${currentPage === pageCount ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Next</button>
+    </div>
+  `;
+}
+
+function renderPage(getScore = null) {
+  if (currentPage < 1) currentPage = 1;
+  const pageCount = getPageCount();
+  if (currentPage > pageCount) currentPage = pageCount;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = activeResults.slice(start, start + PAGE_SIZE);
+  renderList('browse-results', pageItems, getScore);
+  renderPagination();
+}
+
+function changePage(page) {
+  const pageCount = getPageCount();
+  if (page < 1 || page > pageCount) return;
+  currentPage = page;
+  renderPage();
+}
+
 /* ── Text search ──────────────────────────────────────────────────────────── */
 let searchTimeout;
 document.getElementById('search-input').addEventListener('input', () => {
@@ -336,13 +378,15 @@ async function doSearch() {
   }
   const q = document.getElementById('search-input').value.trim();
   if (!q) {
-    document.getElementById('browse-results').innerHTML = '';
+    await loadBrowse();
     return;
   }
   try {
     const results = await api(`/search?q=${encodeURIComponent(q)}`);
     currentResults = results;
-    renderList('browse-results', results);
+    activeResults = results;
+    currentPage = 1;
+    renderPage();
   } catch (e) { showError('browse-results', e.message); }
 }
 
@@ -364,7 +408,9 @@ async function doStructureSearch() {
     const scoreMap = {};
     results.forEach(r => { scoreMap[r.molecule.id] = r.score; });
     currentResults = results.map(r => r.molecule);
-    renderList('browse-results', results.map(r => r.molecule), m => scoreMap[m.id]);
+    activeResults = currentResults;
+    currentPage = 1;
+    renderPage(m => scoreMap[m.id]);
   } catch (e) { showError('browse-results', e.message); }
 }
 
@@ -453,38 +499,11 @@ async function submitAddOrUpdate() {
 /* ── Browse all ────────────────────────────────────────────────────── */
 async function loadBrowse() {
   try {
-    currentResults = await api('/molecules?limit=10000'); // Load more for filtering
-    document.getElementById('list-search-input').value = '';
-    renderList('browse-results', currentResults);
+    currentResults = await api('/molecules?limit=10000'); // Load more for pagination
+    activeResults = currentResults;
+    currentPage = 1;
+    renderPage();
   } catch (e) { showError('browse-results', e.message); }
-}
-
-/* ── List filtering ───────────────────────────────────────────────────────── */
-let listFilterTimeout;
-document.getElementById('list-search-input').addEventListener('input', () => {
-  clearTimeout(listFilterTimeout);
-  listFilterTimeout = setTimeout(filterList, 300);
-});
-
-function filterList() {
-  const q = document.getElementById('list-search-input').value.trim().toLowerCase();
-  if (!q) {
-    renderList('browse-results', currentResults);
-    return;
-  }
-  const filtered = currentResults.filter(m =>
-    (m.name || '').toLowerCase().includes(q) ||
-    (m.cas_number || '').toLowerCase().includes(q) ||
-    (m.smiles || '').toLowerCase().includes(q) ||
-    (m.project || '').toLowerCase().includes(q) ||
-    (m.notes || '').toLowerCase().includes(q)
-  );
-  renderList('browse-results', filtered);
-}
-
-function clearListFilter() {
-  document.getElementById('list-search-input').value = '';
-  renderList('browse-results', currentResults);
 }
 
 /* ── Delete ───────────────────────────────────────────────────────────────── */
@@ -493,7 +512,8 @@ async function deleteMol(id) {
   try {
     await api(`/molecules/${id}`, { method: 'DELETE' });
     currentResults = currentResults.filter(m => m.id !== id);
-    document.getElementById('mol-' + id)?.remove();
+    activeResults = activeResults.filter(m => m.id !== id);
+    renderPage();
   } catch (e) { alert(e.message); }
 }
 
