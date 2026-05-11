@@ -143,39 +143,30 @@ http://localhost:8000/api/docs
 
 ---
 
-# Screenshot File Location
+## Database & Shared Storage Considerations
 
-Your images should be committed inside:
+MolDB uses a single SQLite `.sqlite` file as its database. This works well for single-user, local use — but comes with important caveats depending on how the file is accessed and where it is stored.
 
-```text
-docs/screenshots/
-```
+**SQLite relies on file-system locking to prevent concurrent write corruption.** Network file systems (Samba/CIFS, NFS, etc.) are notoriously unreliable at honoring these locks. On a Samba share in particular, byte-range locking is either broken or disabled by default on many configurations, which means two processes accessing the file simultaneously can silently corrupt the database — with no error shown to either user.
 
-Example:
+The key question is not *how many users* connect to MolDB, but *how many processes open the SQLite file simultaneously*. Because MolDB runs as a FastAPI/Uvicorn server, all browser sessions (users, tabs) go through that single process — SQLite's locking only needs to work within one process, which is always safe regardless of where the file lives.
 
-```text
-docs/screenshots/molecule-browser.png
-```
+**On local disk**, SQLite also handles multiple processes well in WAL mode: readers never block writers and writers never block readers. On a network share however, the OS-level locking primitives SQLite depends on to coordinate between processes are unreliable — a reader starting mid-commit can read a torn page even with a single writer.
 
-This works automatically on:
-- GitHub
-- GitLab
-- Local markdown preview
-- PyPI project pages
-
-because the paths are relative to `README.md`.
-
----
-
-# Recommended Screenshot Sizes
-
-| Image | Recommended Size |
+| Setup | Safe? |
 |---|---|
-| banner.png | 1600×500 |
-| app screenshots | 1400×900 |
-| thumbnails | 1200×700 |
+| One MolDB process, file on local disk, many browser users | ✅ Yes |
+| One MolDB process, file on network share, many browser users | ✅ Yes — locking stays within one process |
+| Multiple MolDB processes, file on local disk | ⚠️ Mostly OK in WAL mode |
+| Multiple MolDB processes, file on network share | ❌ No — risk of silent corruption |
 
-PNG is recommended for UI screenshots.
+**Practical guidance:**
+- **Single MolDB instance, local disk**: fully supported, no caveats.
+- **Single MolDB instance, file on a network share**: safe for concurrent browser users, but keep backups — storage-level failures can still leave the database in a partial-write state.
+- **Multiple MolDB instances sharing the same file**: not recommended over a network share. The correct solution is to migrate to a client-server database (PostgreSQL or MariaDB) and run a single shared MolDB service. The `MoleculeDB` class in `moldb/database.py` uses SQLModel/SQLAlchemy, so swapping the connection string from `sqlite:///path.sqlite` to `postgresql://...` requires only a one-line change plus adding the `psycopg2` driver.
+
+If a multi-process deployment is needed short-term and write volume is low, you can reduce (but not eliminate) risk by enabling WAL mode: add `PRAGMA journal_mode=WAL;` on connection startup in `database.py`.
+
 
 ---
 
