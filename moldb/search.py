@@ -32,12 +32,23 @@ class SearchEngine:
 
     def by_smiles_exact(self, smiles: str) -> Molecule | None:
         try:
-            canonical = chem.normalize_smiles(smiles)
-            inchikey = chem.smiles_to_inchikey(canonical)
+            canonical_query = chem.normalize_smiles(smiles)
+            query_inchikey = chem.smiles_to_inchikey(canonical_query)
         except Exception:
-           return None
+            return None
+
         all_mols = self.db.list_all(limit=10_000)
-        return next((m for m in all_mols if m.smiles.lower() == canonical.lower()), None)
+        for m in all_mols:
+            if m.inchikey and m.inchikey == query_inchikey:
+                return m
+            if not m.smiles:
+                continue
+            try:
+                if chem.normalize_smiles(m.smiles).lower() == canonical_query.lower():
+                    return m
+            except Exception:
+                continue
+        return None
 
     def by_structure(
         self, query_smiles: str, threshold: float = 0.7, limit: int = 20

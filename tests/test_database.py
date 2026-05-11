@@ -23,6 +23,18 @@ def test_add_and_get(db):
     assert fetched.name == "Ethanol"
 
 
+def test_add_computes_inchikey_when_missing(db):
+    mol = db.add(Molecule(name="Ethanol", smiles="CCO"))
+    assert mol.id is not None
+    assert mol.inchikey == "LFQSCWFLJHTTHZ-UHFFFAOYSA-N"
+
+
+def test_add_duplicate_smiles_raises(db):
+    db.add(Molecule(name="Benzene", smiles="c1ccccc1"))
+    with pytest.raises(DuplicateMolecule):
+        db.add(Molecule(name="Benzene copy", smiles="c1ccccc1"))
+
+
 def test_update(db):
     mol = db.add(Molecule(name="Old Name", smiles="CCO"))
     updated = db.update(mol.id, MoleculeUpdate(name="New Name"))

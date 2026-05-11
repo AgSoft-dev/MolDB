@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 from sqlmodel import SQLModel, Session, create_engine, select
 from sqlalchemy import text
+from . import chem
 from .models import Molecule, MoleculeUpdate
 from .exceptions import MoleculeNotFound, DuplicateMolecule
 
@@ -41,15 +42,18 @@ class MoleculeDB:
         return pending
 
     def add(self, mol: Molecule) -> Molecule:
+        canonical = chem.normalize_smiles(mol.smiles)
+        mol.smiles = canonical
+        mol.inchikey = chem.smiles_to_inchikey(canonical)
+
         with Session(self.engine) as s:
-            if mol.inchikey:
-                existing = s.exec(
-                    select(Molecule).where(Molecule.inchikey == mol.inchikey)
-                ).first()
-                if existing:
-                    raise DuplicateMolecule(
-                        f"Molecule with InChIKey {mol.inchikey} already exists (id={existing.id})"
-                    )
+            existing = s.exec(
+                select(Molecule).where(Molecule.inchikey == mol.inchikey)
+            ).first()
+            if existing:
+                raise DuplicateMolecule(
+                    f"Molecule with InChIKey {mol.inchikey} already exists (id={existing.id})"
+                )
             s.add(mol)
             s.commit()
             s.refresh(mol)

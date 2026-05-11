@@ -45,9 +45,16 @@ def test_by_cas_not_found(populated_db):
 def test_by_smiles_exact(populated_db):
     se = SearchEngine(populated_db)
     mol = se.by_smiles_exact("c1ccccc1")
-    print(mol)
     assert mol is not None
     assert mol.name == "Benzene"
+
+
+def test_by_smiles_exact_normalizes_stored_smiles(populated_db):
+    populated_db.add(Molecule(name="Ethanol", smiles="OCC"))
+    se = SearchEngine(populated_db)
+    mol = se.by_smiles_exact("CCO")
+    assert mol is not None
+    assert mol.name == "Ethanol"
 
 
 def test_by_all_searches_project(populated_db):
