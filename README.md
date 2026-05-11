@@ -141,8 +141,6 @@ http://localhost:8000/api/docs
 | Frontend | Vanilla JS |
 | Packaging | PyInstaller |
 
----
-
 ## Database & Shared Storage Considerations
 
 MolDB uses a single SQLite `.sqlite` file as its database. This works well for single-user, local use — but comes with important caveats depending on how the file is accessed and where it is stored.
@@ -166,7 +164,6 @@ The key question is not *how many users* connect to MolDB, but *how many process
 - **Multiple MolDB instances sharing the same file**: not recommended over a network share. The correct solution is to migrate to a client-server database (PostgreSQL or MariaDB) and run a single shared MolDB service. The `MoleculeDB` class in `moldb/database.py` uses SQLModel/SQLAlchemy, so swapping the connection string from `sqlite:///path.sqlite` to `postgresql://...` requires only a one-line change plus adding the `psycopg2` driver.
 
 If a multi-process deployment is needed short-term and write volume is low, you can reduce (but not eliminate) risk by enabling WAL mode: add `PRAGMA journal_mode=WAL;` on connection startup in `database.py`.
-
 
 ---
 
