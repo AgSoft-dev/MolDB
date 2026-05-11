@@ -10,9 +10,8 @@
   <header>
     <h1>⬡ MolDB</h1>
     <nav>
-      <button id="search-nav-btn" onclick="showPanel('search')">Search</button>
+      <button id="browse-nav-btn" onclick="showPanel('browse')">Browse Molecules</button>
       <button id="add-nav-btn" onclick="showPanel('add')">Add Molecule</button>
-      <button id="list-nav-btn" onclick="showPanel('list')">All Molecules</button>
       <span id="db-status-btn" class="status-indicator offline">DB offline</span>
     </nav>
     <label style="position:absolute; top:1rem; right:1rem; font-size:0.9rem;">
@@ -22,9 +21,9 @@
 
   <main>
 
-    <!-- SEARCH PANEL -->
-    <section id="panel-search" class="panel active">
-      <h2>Search</h2>
+    <!-- BROWSE PANEL -->
+    <section id="panel-browse" class="panel active">
+      <h2>Browse Molecules</h2>
       <div id="search-input-area" class="search-bar">
         <input id="search-input" type="text" placeholder="Search all fields…" />
         <button onclick="doSearch()">Search</button>
@@ -73,7 +72,13 @@
         </div>
       </div>
 
-      <div id="search-results"></div>
+      <div class="search-bar" style="margin-bottom:1rem;">
+        <input id="list-search-input" type="text" placeholder="Filter current results…" />
+        <button onclick="filterList()">Filter</button>
+        <button class="secondary" onclick="clearListFilter()">Clear</button>
+      </div>
+      <button class="secondary" onclick="loadBrowse()">↺ Refresh</button>
+      <div id="browse-results"></div>
     </section>
 
     <!-- ADD PANEL -->
@@ -99,17 +104,7 @@
       <div id="add-result"></div>
     </section>
 
-    <!-- LIST PANEL -->
-    <section id="panel-list" class="panel">
-      <h2>All Molecules</h2>
-      <div class="search-bar" style="margin-bottom:1rem;">
-        <input id="list-search-input" type="text" placeholder="Filter molecules…" />
-        <button onclick="filterList()">Filter</button>
-        <button class="secondary" onclick="clearListFilter()">Clear</button>
-      </div>
-      <button class="secondary" onclick="loadList()">↺ Refresh</button>
-      <div id="list-results"></div>
-    </section>
+
 
   </main>
 
