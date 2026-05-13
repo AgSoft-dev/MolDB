@@ -44,8 +44,7 @@ A fully offline Python + web UI application for managing a chemistry molecule da
 This guide explains step-by-step how to install Python and run the application on Windows.
 
 ## 1. Install Miniforge (recommended)
-
-This project uses **RDKit**, which is much easier to install with **Conda**.  
+  
 We recommend using **Miniforge**, a lightweight Conda distribution.
 
 ### Download Miniforge
@@ -108,7 +107,7 @@ cd C:\Users\YourName\Downloads\yourproject
 Then create the environment:
 
 ```bash
-conda create -n moldb python=3.11 rdkit -c conda-forge -y
+conda create -n moldb python=3.11 -c conda-forge -y
 ```
 
 This may take a few minutes the first time.
