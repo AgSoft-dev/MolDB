@@ -39,27 +39,156 @@ A fully offline Python + web UI application for managing a chemistry molecule da
 
 ---
 
-# Quick Start
+# Quick Start (Windows)
 
-## 1. Install dependencies
+This guide explains step-by-step how to install Python and run the application on Windows.
+
+## 1. Install Miniforge (recommended)
+
+This project uses **RDKit**, which is much easier to install with **Conda**.  
+We recommend using **Miniforge**, a lightweight Conda distribution.
+
+### Download Miniforge
+
+Go to:
+
+https://github.com/conda-forge/miniforge/releases
+
+Download:
+
+- **Miniforge3-Windows-x86_64.exe** (for most Windows PCs)
+
+### Install Miniforge
+
+Run the installer and:
+
+- Click **Next**
+- Accept the license
+- Choose **Just Me**
+- Keep the default install location
+- Recommended: enable **"Add Miniforge to PATH"**
+- Finish installation
+
+After installation, open:
+
+- **Miniforge Prompt**  
+  (from the Windows Start Menu)
+
+---
+
+## 2. Download the project
+
+### Option A — Download ZIP (easiest)
+
+On GitHub:
+
+- Click the green **Code** button
+- Click **Download ZIP**
+- Extract the ZIP somewhere convenient
+
+### Option B — Use Git
 
 ```bash
-# Recommended: use conda for RDKit
+git clone https://github.com/yourname/yourproject.git
+cd yourproject
+```
+
+---
+
+## 3. Create the Python environment
+
+In the **Miniforge Prompt**, navigate to the project folder.
+
+Example:
+
+```bash
+cd C:\Users\YourName\Downloads\yourproject
+```
+
+Then create the environment:
+
+```bash
 conda create -n moldb python=3.11 rdkit -c conda-forge -y
+```
+
+This may take a few minutes the first time.
+
+---
+
+## 4. Activate the environment
+
+Every time you want to run the app, activate the environment first:
+
+```bash
 conda activate moldb
+```
+
+You should now see `(moldb)` at the beginning of the command line.
+
+---
+
+## 5. Install project dependencies
+
+Run:
+
+```bash
 pip install -r requirements.txt
 ```
 
-## 2. Run the app
+---
+
+## 6. Start the application
+
+Run:
 
 ```bash
 python run.py
-# Opens http://localhost:8000 in your browser automatically
 ```
 
-The SQLite database is not created automatically unless you explicitly create one in advanced mode. On first run, use the UI to select an existing `.sqlite` file or, in advanced mode, create a new database and apply schema migration.
+Your browser should automatically open:
 
-The `MOLDB_PATH` environment variable is optional and only useful for development; packaged executables should use the UI file picker instead.
+```text
+http://localhost:8000
+```
+
+If it does not open automatically, copy the address above into your browser manually.
+
+---
+
+# Database setup
+
+The SQLite database is **not created automatically** unless you explicitly create one in advanced mode.
+
+On first launch:
+
+- Use the interface to select an existing `.sqlite` database file
+
+OR
+
+- Use **Advanced Mode** to:
+  - create a new database
+  - apply the schema migration
+
+---
+
+## Optional: `MOLDB_PATH`
+
+The `MOLDB_PATH` environment variable is optional.
+
+It is mainly useful for development workflows.  
+For normal usage, simply use the built-in file picker in the application.
+
+---
+
+## Running the app again later
+
+Next time, you only need:
+
+```bash
+conda activate moldb
+cd path\to\yourproject
+python run.py
+```
 
 ## 3. Run tests
 
