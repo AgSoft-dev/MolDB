@@ -14,10 +14,14 @@ DB_PATH = os.environ.get("MOLDB_PATH", "").strip()
 db = None
 search = None
 current_db_path = ""
-if DB_PATH and os.path.exists(DB_PATH):
-    db = MoleculeDB(DB_PATH)
-    search = SearchEngine(db)
-    current_db_path = DB_PATH
+if DB_PATH:
+    if not os.path.isabs(DB_PATH):
+        DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), DB_PATH)
+    DB_PATH = os.path.normpath(DB_PATH)
+    if os.path.exists(DB_PATH):
+        db = MoleculeDB(DB_PATH)
+        search = SearchEngine(db)
+        current_db_path = DB_PATH
 
 app = FastAPI(title="MolDB", version="0.1.0", docs_url="/api/docs")
 
@@ -70,6 +74,14 @@ async def set_db_path(payload: DBPathPayload):
     if not payload.path.strip():
         raise HTTPException(422, "Database path must not be empty")
     path = payload.path.strip()
+    # Ensure a recognised SQLite extension so callers can omit it.
+    if not path.endswith(('.sqlite', '.db')):
+        path += '.sqlite'
+    # Resolve relative paths against the directory containing app.py,
+    # not the process CWD (which may differ when launched via uvicorn/gunicorn).
+    if not os.path.isabs(path):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+    path = os.path.normpath(path)
     create = payload.create or False
     migrate = payload.migrate or False
     if not os.path.exists(path) and not create:

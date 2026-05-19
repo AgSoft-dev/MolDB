@@ -104,24 +104,16 @@ window.addEventListener('load', () => {
   slider.addEventListener('input', e => {
     document.getElementById('threshold-val').textContent = e.target.value;
   });
-  loadDbPath();
-
-  // Handle file selection for DB path
-  const fileInput = document.getElementById('db-file-input');
-  if (fileInput) {
-    fileInput.addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (file) {
-        document.getElementById('db-path-input').value = file.name;
-        setDbPath();  // Automatically set the DB path
-      }
-    });
-  }
-
-  // Handle manual path input
+  // Handle manual path input — trigger on blur or Enter key.
+  // Note: the Browse button / file picker cannot provide real filesystem paths
+  // due to browser security restrictions. Type the path (relative to app.py's
+  // directory, or absolute) directly into the text field.
   const pathInput = document.getElementById('db-path-input');
   if (pathInput) {
     pathInput.addEventListener('change', setDbPath);
+    pathInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); setDbPath(); }
+    });
   }
 
   // Advanced mode
@@ -135,24 +127,6 @@ window.addEventListener('load', () => {
   refreshDbStatus();
   updateAdvancedUI();
 });
-
-function getStoredDbPath() {
-  return window.localStorage.getItem('moldb_db_path') || '';
-}
-
-function setStoredDbPath(path) {
-  window.localStorage.setItem('moldb_db_path', path);
-}
-
-async function loadDbPath() {
-  const savedPath = getStoredDbPath();
-  const input = document.getElementById('db-path-input');
-  if (!input) return;
-  input.value = savedPath;
-  if (savedPath) {
-    document.getElementById('db-path-result').textContent = `Saved path: ${savedPath}`;
-  }
-}
 
 function setDbReady(ready) {
   dbLoaded = ready;
@@ -177,9 +151,8 @@ async function refreshDbStatus() {
     const data = await api('/db/path');
     const path = data?.path || '';
     if (path) {
-      setStoredDbPath(path);
       document.getElementById('db-path-input').value = path;
-      document.getElementById('db-path-result').textContent = `Using DB: ${path}`;
+      document.getElementById('db-path-result').textContent = `✓ Using: ${path}`;
       setDbReady(true);
       await refreshMigrationStatus();
     } else {
@@ -216,23 +189,28 @@ async function refreshMigrationStatus() {
   updateAdvancedUI();
 }
 
+function ensureSqliteExt(p) {
+  if (!p) return p;
+  return p.endsWith('.sqlite') || p.endsWith('.db') ? p : p + '.sqlite';
+}
+
 async function createDb() {
   const input = document.getElementById('db-path-input');
   const result = document.getElementById('db-path-result');
-  const path = input.value.trim();
+  // Default to a timestamped name if the field is blank
+  let path = input.value.trim();
   if (!path) {
-    result.textContent = 'Please enter a database path.';
-    return;
+    const ts = new Date().toISOString().slice(0,10); // e.g. 2025-05-19
+    path = `molecules_${ts}.sqlite`;
   }
+  path = ensureSqliteExt(path);
+  input.value = path; // reflect normalised name back into the field
   try {
-    await api('/db/path', {
+    const data = await api('/db/path', {
       method: 'POST',
       body: JSON.stringify({ path, create: true, migrate: false }),
     });
-    setStoredDbPath(path);
-    result.textContent = `Created DB: ${path}`;
-    setDbReady(true);
-    await refreshMigrationStatus();
+    location.reload();
   } catch (e) {
     setDbReady(false);
     result.textContent = `Failed to create DB: ${escHtml(e.message)}`;
@@ -258,20 +236,19 @@ async function applyMigration() {
 async function setDbPath() {
   const input = document.getElementById('db-path-input');
   const result = document.getElementById('db-path-result');
-  const path = input.value.trim();
+  let path = input.value.trim();
   if (!path) {
     result.textContent = 'Please enter a database path.';
     return;
   }
+  path = ensureSqliteExt(path);
+  input.value = path;
   try {
-    await api('/db/path', {
+    const data = await api('/db/path', {
       method: 'POST',
       body: JSON.stringify({ path, create: false, migrate: false }),
     });
-    setStoredDbPath(path);
-    result.textContent = `Using DB: ${path}`;
-    setDbReady(true);
-    await refreshMigrationStatus();
+    location.reload();
   } catch (e) {
     setDbReady(false);
     result.textContent = `Failed to set DB: ${escHtml(e.message)}`;
