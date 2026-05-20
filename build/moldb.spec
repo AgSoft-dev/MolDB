@@ -10,7 +10,6 @@ a = Analysis(
     binaries=[],
     datas=[
         ('../ui/static',    'ui/static'),
-        ('../ui/templates', 'ui/templates'),
     ],
     hiddenimports=[
     'rdkit',
