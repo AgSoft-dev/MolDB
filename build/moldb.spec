@@ -12,6 +12,8 @@ a = Analysis(
         ('../ui/static',    'ui/static'),
     ],
     hiddenimports=[
+    'ui',
+    'ui.app',
     'rdkit',
     'rdkit.Chem',
     'rdkit.Chem.Draw',
