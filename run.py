@@ -15,13 +15,15 @@ def open_browser():
 
 def main():
     threading.Thread(target=open_browser, daemon=True).start()
+
+    from ui.app import app  # direct import instead of string reference
+
     uvicorn.run(
-        "ui.app:app",
+        app,            # pass object, not string
         host=HOST,
         port=PORT,
         log_level="warning",
-        # Needed for PyInstaller one-file build
-        reload=False,
+        reload=False,   # must be False when passing app object anyway
     )
 
 
