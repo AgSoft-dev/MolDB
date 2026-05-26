@@ -98,6 +98,29 @@ async function importSmilesFromDrawing() {
   if (smiles) document.getElementById('add-smiles').value = smiles;
 }
 
+async function loadSmilesIntoKetcher(iframeId, smiles) {
+  const MAX_WAIT_MS = 8000;
+  const POLL_INTERVAL = 200;
+  let waited = 0;
+
+  // Poll until Ketcher is ready — the iframe may still be loading
+  while (waited < MAX_WAIT_MS) {
+    const frame = document.getElementById(iframeId);
+    const ketcher = frame?.contentWindow?.ketcher;
+    if (ketcher && typeof ketcher.setMolecule === 'function') {
+      try {
+        await ketcher.setMolecule(smiles);
+      } catch (e) {
+        console.error('Ketcher setMolecule error:', e);
+      }
+      return;
+    }
+    await new Promise(r => setTimeout(r, POLL_INTERVAL));
+    waited += POLL_INTERVAL;
+  }
+  console.warn(`Ketcher iframe "${iframeId}" not ready after ${MAX_WAIT_MS}ms — drawing not loaded.`);
+}
+
 /* ── Slider ───────────────────────────────────────────────────────────────── */
 window.addEventListener('load', () => {
   const slider = document.getElementById('threshold');
@@ -399,7 +422,8 @@ let currentResults = []; // For filtering
 async function editMol(id) {
   try {
     const mol = await api(`/molecules/${id}`);
-    // Populate form
+    document.getElementById('add-panel-title').textContent = `Edit Molecule — ${mol.name}`;
+    // Populate form fields
     document.getElementById('add-name').value = mol.name || '';
     document.getElementById('add-smiles').value = mol.smiles || '';
     document.getElementById('add-cas').value = mol.cas_number || '';
@@ -407,11 +431,15 @@ async function editMol(id) {
     document.getElementById('add-notes').value = mol.notes || '';
     // Switch to add panel
     showPanel('add');
-    // Set edit mode
+    // Set edit mode UI
     editMode = { id };
     document.getElementById('submit-btn').textContent = 'Update Molecule';
     document.getElementById('cancel-btn').style.display = 'inline-block';
     document.getElementById('add-result').innerHTML = `<p>Editing molecule ID ${id}</p>`;
+    // Load molecule into Ketcher — wait for it to be ready
+    if (mol.smiles) {
+      await loadSmilesIntoKetcher('ketcher-add', mol.smiles);
+    }
   } catch (e) {
     alert('Failed to load molecule for editing: ' + e.message);
   }
@@ -419,13 +447,19 @@ async function editMol(id) {
 
 function cancelEdit() {
   editMode = null;
+  document.getElementById('add-panel-title').textContent = 'Add Molecule';
   document.getElementById('submit-btn').textContent = 'Save Molecule';
   document.getElementById('cancel-btn').style.display = 'none';
   document.getElementById('add-result').innerHTML = '';
-  // Clear form
   ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  // Clear the drawing canvas
+  const frame = document.getElementById('ketcher-add');
+  const ketcher = frame?.contentWindow?.ketcher;
+  if (ketcher && typeof ketcher.setMolecule === 'function') {
+    ketcher.setMolecule('');
+  }
 }
 /* ── Add/Update molecule ───────────────────────────────────────────────────── */
 async function submitAddOrUpdate() {
@@ -455,7 +489,18 @@ async function submitAddOrUpdate() {
       ['add-name','add-smiles','add-cas','add-project','add-notes'].forEach(id => {
         document.getElementById(id).value = '';
       });
-      // Refresh lists if needed
+      // Clear Ketcher canvas
+      const frame = document.getElementById('ketcher-add');
+      const ketcher = frame?.contentWindow?.ketcher;
+      if (ketcher && typeof ketcher.setMolecule === 'function') {
+        ketcher.setMolecule('');
+      }                  
+      // Update the molecule in local results so the SVG refreshes immediately
+      const updatedMol = mol; // mol is already the fresh API response
+      currentResults = currentResults.map(m => m.id === updatedMol.id ? updatedMol : m);
+      activeResults = activeResults.map(m => m.id === updatedMol.id ? updatedMol : m);
+      renderPage();
+      // Also reload if browse panel is active, to catch any sorting/filter state
       if (document.getElementById('panel-browse').classList.contains('active')) {
         loadBrowse();
       }

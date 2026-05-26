@@ -159,6 +159,16 @@ async def get_molecule(mol_id: int):
 @app.put("/api/molecules/{mol_id}", response_model=MoleculeRead)
 async def update_molecule(mol_id: int, data: MoleculeUpdate):
     try:
+        if data.smiles:
+            try:
+                canonical = chem.normalize_smiles(data.smiles)
+                data.smiles = canonical
+                data.inchikey = chem.smiles_to_inchikey(canonical)
+                data.svg_cache = chem.smiles_to_svg(canonical)
+                data.molecular_formula = chem.get_formula(canonical)
+                data.molecular_weight = chem.get_mw(canonical)
+            except InvalidSMILES as e:
+                raise HTTPException(422, str(e))
         return get_db_obj().update(mol_id, data)
     except MoleculeNotFound:
         raise HTTPException(404, f"Molecule {mol_id} not found")

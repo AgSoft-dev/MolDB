@@ -36,3 +36,8 @@ class MoleculeUpdate(SQLModel):
     smiles: Optional[str] = None
     project: Optional[str] = None
     notes: Optional[str] = None
+    # derived fields, populated server-side when SMILES changes
+    inchikey: Optional[str] = None
+    svg_cache: Optional[str] = None
+    molecular_formula: Optional[str] = None
+    molecular_weight: Optional[float] = None
