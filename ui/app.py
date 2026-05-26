@@ -68,24 +68,33 @@ def get_search_engine() -> SearchEngine:
 async def get_db_path():
     return {"path": current_db_path}
 
+SQLITE_EXTENSIONS = ('.sqlite', '.db', '.sqlite3', '.s3db', '.sl3', '.moldb', '.sql')
 
 @app.post("/api/db/path", response_model=DBPathResponse)
 async def set_db_path(payload: DBPathPayload):
     if not payload.path.strip():
         raise HTTPException(422, "Database path must not be empty")
     path = payload.path.strip()
-    # Ensure a recognised SQLite extension so callers can omit it.
-    if not path.endswith(('.sqlite', '.db')):
-        path += '.sqlite'
-    # Resolve relative paths against the directory containing app.py,
-    # not the process CWD (which may differ when launched via uvicorn/gunicorn).
+    # Resolve relative paths first, so we can check if the file exists as-is
     if not os.path.isabs(path):
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
     path = os.path.normpath(path)
+    # Only append .sqlite if the file doesn't exist as-is and has no known extension
+    if not os.path.exists(path) and not path.endswith(SQLITE_EXTENSIONS):
+        path += '.sqlite'
     create = payload.create or False
     migrate = payload.migrate or False
     if not os.path.exists(path) and not create:
         raise HTTPException(404, "Database file does not exist. Use advanced mode to create a new database.")
+    # Validate it's actually a SQLite file before trying to open it
+    if os.path.exists(path):
+        import sqlite3
+        try:
+            con = sqlite3.connect(path)
+            con.execute("SELECT name FROM sqlite_master LIMIT 1")
+            con.close()
+        except sqlite3.DatabaseError:
+            raise HTTPException(422, f"'{os.path.basename(path)}' is not a valid SQLite database.")
     try:
         new_db = MoleculeDB(path, create=create, migrate=migrate)
     except FileNotFoundError as e:

@@ -213,8 +213,7 @@ async function refreshMigrationStatus() {
 }
 
 function ensureSqliteExt(p) {
-  if (!p) return p;
-  return p.endsWith('.sqlite') || p.endsWith('.db') ? p : p + '.sqlite';
+  return p ? p.trim() : p;
 }
 
 async function createDb() {
