@@ -149,6 +149,7 @@ window.addEventListener('load', () => {
   }
   refreshDbStatus();
   updateAdvancedUI();
+  renderDbHistory();
 
   // Fetch and display version
   fetch('/openapi.json')
@@ -285,11 +286,67 @@ async function setDbPath() {
       method: 'POST',
       body: JSON.stringify({ path, create: false, migrate: false }),
     });
+    addDbHistory(data.path); // ← store resolved path before reload
     location.reload();
   } catch (e) {
     setDbReady(false);
     result.textContent = `Failed to set DB: ${escHtml(e.message)}`;
   }
+}
+
+const DB_HISTORY_KEY = 'moldb_path_history';
+const DB_HISTORY_MAX = 10;
+
+function getDbHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(DB_HISTORY_KEY) || '[]');
+  } catch { return []; }
+}
+
+function addDbHistory(path) {
+  if (!path) return;
+  let history = getDbHistory().filter(p => p !== path); // remove duplicate
+  history.unshift(path); // add to front
+  history = history.slice(0, DB_HISTORY_MAX); // keep last 10
+  localStorage.setItem(DB_HISTORY_KEY, JSON.stringify(history));
+  renderDbHistory();
+}
+
+function renderDbHistory() {
+  const dropdown = document.getElementById('db-path-dropdown');
+  const input = document.getElementById('db-path-input');
+  if (!dropdown || !input) return;
+
+  const history = getDbHistory();
+
+  // Build dropdown items
+  function showDropdown() {
+    const val = input.value.toLowerCase();
+    const filtered = val
+      ? history.filter(p => p.toLowerCase().includes(val))
+      : history;
+    if (!filtered.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = filtered.map(p => `
+      <div class="db-history-item" onclick="selectDbHistory('${escHtml(p)}')">${escHtml(p)}</div>
+    `).join('');
+    dropdown.style.display = 'block';
+  }
+
+  input.addEventListener('focus', showDropdown);
+  input.addEventListener('input', showDropdown);
+
+  // Hide on outside click
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function selectDbHistory(path) {
+  document.getElementById('db-path-input').value = path;
+  document.getElementById('db-path-dropdown').style.display = 'none';
+  setDbPath();
 }
 
 /* ── API helpers ──────────────────────────────────────────────────────────── */
