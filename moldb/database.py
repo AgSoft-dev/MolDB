@@ -52,7 +52,7 @@ class MoleculeDB:
             ).first()
             if existing:
                 raise DuplicateMolecule(
-                    f"Molecule with InChIKey {mol.inchikey} already exists (id={existing.id})"
+                    f"Molecule {existing.smiles} with name {existing.name} already exists (id={existing.id}, InChIKey={existing.inchikey})"
                 )
             s.add(mol)
             s.commit()
