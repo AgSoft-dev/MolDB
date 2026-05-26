@@ -58,7 +58,7 @@ function updateAdvancedUI() {
     showPanel('browse');
   }
   // Re-render lists to show/hide delete buttons
-  if (document.getElementById('panel-browse').classList.contains('active')) {
+  if (dbLoaded && document.getElementById('panel-browse').classList.contains('active')) {
     loadBrowse();
   }
 }
@@ -165,6 +165,12 @@ function setDbReady(ready) {
     statusBtn.classList.remove('online');
     statusBtn.classList.add('offline');
     statusBtn.title = 'No database loaded';
+    // Clear stale data from previous DB
+    currentResults = [];
+    activeResults = [];
+    currentPage = 1;
+    document.getElementById('browse-results').innerHTML = '';
+    document.getElementById('search-input').value = '';
   }
   updateAdvancedUI();
 }
