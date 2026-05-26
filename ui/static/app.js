@@ -149,6 +149,15 @@ window.addEventListener('load', () => {
   }
   refreshDbStatus();
   updateAdvancedUI();
+
+  // Fetch and display version
+  fetch('/openapi.json')
+    .then(r => r.json())
+    .then(data => {
+      const v = data?.info?.version;
+      if (v) document.getElementById('app-version').textContent = `v${v}`;
+    })
+    .catch(() => {}); // fail silently if not available
 });
 
 function setDbReady(ready) {
