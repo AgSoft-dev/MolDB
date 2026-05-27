@@ -40,14 +40,13 @@
         <label style="margin:0; font-size:0.95rem; color:#333; white-space:nowrap;">
           DB file:
           <div style="position:relative; display:inline-block;">
-  <input id="db-path-input" type="text" autocomplete="off"
-         placeholder="e.g. molecules.db or /data/lab.sqlite"
-         title="Enter a path relative to app.py, or an absolute path. Press Enter or click Load."
-         style="width:22rem; margin-left:0.5rem;" />
-  <div id="db-path-dropdown" style="display:none; position:absolute; top:100%; left:0.5rem; width:22rem;
+            <input id="db-path-input" type="text" autocomplete="off" placeholder="e.g. molecules.db or /data/lab.sqlite"
+              title="Enter a path relative to app.py, or an absolute path. Press Enter or click Load."
+              style="width:22rem; margin-left:0.5rem;" />
+            <div id="db-path-dropdown" style="display:none; position:absolute; top:100%; left:0.5rem; width:22rem;
        background:#fff; border:1px solid var(--border); border-radius:var(--radius);
        box-shadow:0 4px 12px rgba(0,0,0,.12); z-index:100; max-height:220px; overflow-y:auto;"></div>
-</div>
+          </div>
         </label>
         <button class="secondary" onclick="setDbPath()">Load</button>
         <span id="db-path-result" style="font-size:0.9rem; color:#555;"></span>
@@ -114,7 +113,19 @@
       <div id="add-result"></div>
     </section>
 
-
+    <!-- Molecule zoom modal -->
+    <div id="mol-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+     z-index:1000; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:var(--radius); padding:1.5rem; max-width:90vw;
+       max-height:90vh; overflow:auto; position:relative; min-width:320px;">
+        <button onclick="closeMolModal()" style="position:absolute; top:.75rem; right:.75rem;
+        background:#e5e7eb; color:var(--text); border:none; border-radius:50%;
+        width:2rem; height:2rem; font-size:1.1rem; cursor:pointer;
+        display:flex; align-items:center; justify-content:center; padding:0;">✕</button>
+        <h3 id="mol-modal-name" style="margin-bottom:1rem; color:var(--primary); font-size:1.1rem;"></h3>
+        <div id="mol-modal-svg" style="display:flex; justify-content:center;"></div>
+      </div>
+    </div>
 
   </main>
 

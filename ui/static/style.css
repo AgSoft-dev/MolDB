@@ -232,3 +232,9 @@ button.secondary[disabled] {
 .ok  { color: var(--ok);  margin-top: .5rem; font-weight: 500; }
 .err { color: var(--err); margin-top: .5rem; font-weight: 500; }
 .empty { color: var(--text-muted); font-style: italic; margin-top: 1rem; }
+
+/* ── Molecule zoom modal ─────────────────────────────────────────────────── */
+.mol-svg:hover svg {
+  opacity: 0.85;
+  transition: opacity .15s;
+}

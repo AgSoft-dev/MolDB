@@ -23,7 +23,7 @@ if DB_PATH:
         search = SearchEngine(db)
         current_db_path = DB_PATH
 
-app = FastAPI(title="MolDB", version="1.1.0", docs_url="/api/docs")
+app = FastAPI(title="MolDB", version="1.2.0", docs_url="/api/docs")
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

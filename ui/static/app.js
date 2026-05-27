@@ -367,7 +367,9 @@ function molCard(m, score = null) {
   const advanced = isAdvancedMode();
   return `
     <div class="mol-card" id="mol-${m.id}">
-      <div class="mol-svg">${m.svg_cache || '<span class="no-struct">No structure</span>'}</div>
+      <div class="mol-svg" ${m.svg_cache ? `onclick="openMolModal(${m.id})" style="cursor:zoom-in;"` : ''}>
+        ${m.svg_cache || '<span class="no-struct">No structure</span>'}
+      </div>
       <div class="mol-info">
         <strong class="mol-name">${escHtml(m.name)}</strong>
         ${m.cas_number ? `<span class="badge">CAS ${escHtml(m.cas_number)}</span>` : ''}
@@ -614,3 +616,30 @@ async function deleteMol(id) {
 function showError(containerId, msg) {
   document.getElementById(containerId).innerHTML = `<p class="err">Error: ${escHtml(msg)}</p>`;
 }
+
+/* ── modal view molecule ───────────────────────────────────────────────────── */
+
+function openMolModal(id) {
+  const mol = currentResults.find(m => m.id === id);
+  if (!mol || !mol.svg_cache) return;
+  document.getElementById('mol-modal-name').textContent = mol.name;
+  // Scale up the SVG
+  const scaled = mol.svg_cache.replace(/<svg /, '<svg style="width:600px;height:auto;max-width:80vw;" ');
+  document.getElementById('mol-modal-svg').innerHTML = scaled;
+  const modal = document.getElementById('mol-modal');
+  modal.style.display = 'flex';
+}
+
+function closeMolModal() {
+  document.getElementById('mol-modal').style.display = 'none';
+}
+
+// Close on backdrop click
+document.getElementById('mol-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('mol-modal')) closeMolModal();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeMolModal();
+});
