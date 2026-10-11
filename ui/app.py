@@ -9,15 +9,14 @@ from typing import Optional
 from moldb import MoleculeDB, SearchEngine, chem
 from moldb.models import Molecule, MoleculeCreate, MoleculeRead, MoleculeUpdate
 from moldb.exceptions import InvalidSMILES, DuplicateMolecule, MoleculeNotFound
+from moldb.paths import resolve_db_path, user_data_dir
 
 DB_PATH = os.environ.get("MOLDB_PATH", "").strip()
 db = None
 search = None
 current_db_path = ""
 if DB_PATH:
-    if not os.path.isabs(DB_PATH):
-        DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), DB_PATH)
-    DB_PATH = os.path.normpath(DB_PATH)
+    DB_PATH = resolve_db_path(DB_PATH)
     if os.path.exists(DB_PATH):
         db = MoleculeDB(DB_PATH)
         search = SearchEngine(db)
@@ -50,6 +49,7 @@ class DBPathPayload(BaseModel):
 
 class DBPathResponse(BaseModel):
     path: str
+    data_dir: str = ""
 
 
 def get_db_obj() -> MoleculeDB:
@@ -66,7 +66,7 @@ def get_search_engine() -> SearchEngine:
 
 @app.get("/api/db/path", response_model=DBPathResponse)
 async def get_db_path():
-    return {"path": current_db_path}
+    return {"path": current_db_path, "data_dir": user_data_dir()}
 
 SQLITE_EXTENSIONS = ('.sqlite', '.db', '.sqlite3', '.s3db', '.sl3', '.moldb', '.sql')
 
@@ -74,11 +74,12 @@ SQLITE_EXTENSIONS = ('.sqlite', '.db', '.sqlite3', '.s3db', '.sl3', '.moldb', '.
 async def set_db_path(payload: DBPathPayload):
     if not payload.path.strip():
         raise HTTPException(422, "Database path must not be empty")
-    path = payload.path.strip()
-    # Resolve relative paths first, so we can check if the file exists as-is
-    if not os.path.isabs(path):
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
-    path = os.path.normpath(path)
+    # Relative paths go to the per-user data dir, never next to the code
+    # (in the frozen exe that is a temp folder deleted on exit).
+    try:
+        path = resolve_db_path(payload.path)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     # Only append .sqlite if the file doesn't exist as-is and has no known extension
     if not os.path.exists(path) and not path.endswith(SQLITE_EXTENSIONS):
         path += '.sqlite'
@@ -105,7 +106,7 @@ async def set_db_path(payload: DBPathPayload):
     db = new_db
     search = SearchEngine(db)
     current_db_path = path
-    return {"path": current_db_path}
+    return {"path": current_db_path, "data_dir": user_data_dir()}
 
 
 class MigrationStatusResponse(BaseModel):
