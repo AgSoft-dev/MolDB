@@ -129,8 +129,8 @@ window.addEventListener('load', () => {
   });
   // Handle manual path input — trigger on blur or Enter key.
   // Note: the Browse button / file picker cannot provide real filesystem paths
-  // due to browser security restrictions. Type the path (relative to app.py's
-  // directory, or absolute) directly into the text field.
+  // due to browser security restrictions. Type an absolute path, or a bare
+  // file name which the server stores in the per-user MolDB data folder.
   const pathInput = document.getElementById('db-path-input');
   if (pathInput) {
     pathInput.addEventListener('change', setDbPath);
@@ -189,6 +189,10 @@ async function refreshDbStatus() {
   try {
     const data = await api('/db/path');
     const path = data?.path || '';
+    if (data?.data_dir) {
+      document.getElementById('db-path-input').title =
+        `Enter an absolute path, or a file name to store it in ${data.data_dir}. Press Enter or click Load.`;
+    }
     if (path) {
       document.getElementById('db-path-input').value = path;
       document.getElementById('db-path-result').textContent = `✓ Using: ${path}`;
@@ -248,6 +252,7 @@ async function createDb() {
       method: 'POST',
       body: JSON.stringify({ path, create: true, migrate: false }),
     });
+    addDbHistory(data.path); // resolved absolute path, so the user can find it again
     location.reload();
   } catch (e) {
     setDbReady(false);
