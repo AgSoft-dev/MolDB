@@ -189,11 +189,22 @@ cd path\to\yourproject
 python run.py
 ```
 
-## 3. Run tests
+## Run tests
 
 ```bash
 pytest tests/
 ```
+
+## Development setup
+
+Keep the virtual environment in `.venv/` at the project root (never inside `moldb/`), and enable the repository's git hooks once per clone:
+
+```bash
+python -m venv .venv
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook runs `scripts/check_no_sqlite.py`, which refuses to commit any SQLite database whatever its file name. Molecule databases are confidential and must stay out of this public repository.
 
 ---
 
