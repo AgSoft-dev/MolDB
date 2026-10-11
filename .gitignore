@@ -1,70 +1,79 @@
 # Byte-compiled / optimized / DLL files
-
-pycache/
+__pycache__/
 *.py[cod]
 *$py.class
-*.pyc
-
-# SQLite database files
-
-*.sqlite
-*.db
 
 # Virtual environments
-
+.venv/
 venv/
 env/
-moldb/
-.venv/
 ENV/
+# Legacy venv created inside the package dir: ignore its pieces only,
+# never the whole moldb/ package (that silently ignores new source files).
+moldb/bin/
+moldb/lib/
+moldb/include/
+moldb/pyvenv.cfg
 
-# Distribution / packaging
-
-build/
+# PyInstaller output (build/ itself holds the tracked spec and hooks)
+build/build/
+build/dist/
 dist/
+*.spec.bak
+
+# Packaging
 *.egg-info/
 *.egg
 pip-wheel-metadata/
 share/python-wheels/
 *.whl
+wheelhouse/
+
+# Molecule databases are confidential: never commit them.
+# scripts/check_no_sqlite.py also blocks SQLite files with any name.
+*.sqlite
+*.sqlite3
+*.db
+*.s3db
+*.sl3
+*.moldb
+*.bak-*
+*-wal
+*-shm
+*-journal
+/mydb
 
 # Installer logs
-
 pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-
 htmlcov/
 .tox/
 .nox/
 .coverage
 .coverage.*
 .cache
-pytest_cache/
+.pytest_cache/
 nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
 
 # Type checkers
-
 .mypy_cache/
 .pyre/
 .pytype/
 
 # Jupyter Notebook
-
 .ipynb_checkpoints/
 
 # Environments / config
-
 .env
 .env.*
 *.local
 
 # IDE / editors
-
 .vscode/
 .idea/
 *.swp
@@ -72,19 +81,11 @@ coverage.xml
 *~
 
 # macOS
-
 .DS_Store
 
 # Logs
-
 *.log
 
-# Database (optional – remove if you want to commit local DB)
-
-*.sqlite3
-*.sqlite
-
 # Temporary files
-
 tmp/
 temp/
